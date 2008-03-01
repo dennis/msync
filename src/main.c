@@ -82,7 +82,7 @@ static int slave_mode(int argc, char* argv[]) {
 			dir = argv[i];
 
 	if(dir && chdir(dir)==-1) {
-		perror(argv[0]);
+		fprintf(stderr, "ERROR couldn't chdir to %s\n", dir);
 		return 1;
 	}
 
