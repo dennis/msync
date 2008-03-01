@@ -51,7 +51,7 @@ Find files/dirs newer than ts
 Creating a directory
 --------------------
 	master sends:
-		"MKDIR permission mtime ctime atime filename\n"
+		"MKDIR permission atime ctime mtime filename\n"
 	
 	client:
 		"MKDIR filename"
@@ -62,15 +62,15 @@ Requesting a file/directory
 		"GET filename\n"
 
 	client replies:
-		"PUT size md5 permission mtime ctime atime filename\n"
+		"PUT size md5 permission atime ctime mtime filename\n"
 		octets [size bytes]
 	- or - 
-		"MKDIR permission mtime ctime atime filename\n"
+		"MKDIR permission atime ctime mtime filename\n"
 
 Sending a file
 --------------
 	master sends: 
-		"PUT size md5 permission mtime ctime atime filename\n"
+		"PUT size md5 permission atime ctime mtime filename\n"
 		octets [size bytes]
 
 	client replies:

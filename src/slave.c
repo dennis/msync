@@ -268,9 +268,9 @@ static void proto_handle_mkdir(conn_t* cn, const char* line) {
 	while((token = strtok_r(ptr, delim, &saveptr))) {
 		switch(c) {
 			case 0: mode = str2mode(token); break;
-			case 1: mtime = atol(token); break;
+			case 1: atime = atol(token); break; 
 			case 2: ctime = atol(token); break;
-			case 3: atime = atol(token); break; 
+			case 3: mtime = atol(token); break;
 			case 4: name = token; break;
 			default:
 				conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
@@ -372,9 +372,9 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				st.st_size,
 				md5str,
 				modestr,
-				st.st_mtime,
-				st.st_ctime,
 				st.st_atime,
+				st.st_ctime,
+				st.st_mtime,
 				line);
 			while((size = read(fd, buffer, buffer_l))) 
 				conn_write(cn, buffer, size);
@@ -385,9 +385,9 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 			mode2str(st.st_mode, modestr);
 			conn_printf(cn, "MKDIR %s %ld %ld %ld %s\n",
 				modestr,
-				st.st_mtime,
-				st.st_ctime,
 				st.st_atime,
+				st.st_ctime,
+				st.st_mtime,
 				line);
 		}
 		else {
@@ -416,9 +416,9 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 			case 0: size = atol(token); break;
 			case 1: md5 = token; break;
 			case 2: mode = str2mode(token); break;
-			case 3: mtime = atol(token); break;
+			case 3: atime = atol(token); break; 
 			case 4: ctime = atol(token); break;
-			case 5: atime = atol(token); break; 
+			case 5: mtime = atol(token); break;
 			case 6: name = token; break;
 		}
 		c++;
