@@ -455,7 +455,7 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 	unsigned char md5bin[16];
 	char md5str[33];
 	md5_init(&md5_state);
-	while(!cn->abort && cn->rbuf_len && bytes_left) {
+	while(!cn->abort && bytes_left) {
 		if(cn->rbuf_len == 0) 
 			(void)conn_read(cn);
 
@@ -477,10 +477,9 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 	// Check md5
 	if(strcmp(md5str,md5)!=0) {
 		// Mismatch!
-		conn_printf(cn, "WARNING %s md5-mismatch (%s <-> %s, removing file\n", 
+		conn_printf(cn, "WARNING %s md5-mismatch (%s <-> %s), removing file\n", 
 			name,
 			md5str, md5);
-
 		if(unlink(name)==-1) {
 			perror("WARNING: unlink()");
 		}
