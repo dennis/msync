@@ -76,3 +76,4 @@ mkdir dir2
 (cd dir2 && ls -l . >/tmp/msync-t51-dir2.txt)
 (diff /tmp/msync-t51-dir?.txt >/dev/null && echo OK) || echo FAIL
 rm -r dir2
+rm /tmp/msync-t51-*

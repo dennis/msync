@@ -485,6 +485,13 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 		}
 	}
 	else {
+		struct utimbuf t;
+		t.actime = atime;
+		t.modtime = mtime;
+		if(utime(name,&t)==-1) {
+			perror("utime");
+			conn_printf(cn, "WARNING Can't timestamp on directory: %s\n", name);
+		}
 		// md5 is fine
 		conn_printf(cn, "GET %s\n", name);
 	}
