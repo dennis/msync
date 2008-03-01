@@ -1,0 +1,78 @@
+Protocol description (v1)
+====================
+
+msync uses a simple protocol between the "master" and "slave" mode. This allows
+us to pipe it over ssh.
+
+If master sees a:
+	ERROR <message>
+	It should display it on stderr and abort.
+
+If master sees a:
+	WARNING <message>
+	it should print it to stderr and continue
+
+Handshake
+---------
+	master sends: "HELLO msync 1\n" 
+
+	slave replies:
+		"HELLO"
+
+Time adjustmenet
+----------------
+	master sends: 
+		"GETTIME\n"
+
+	slave replies:
+		"GETTIME 1203342491\n"
+		(or error)
+
+	master can now calculate timedifference
+
+Find newest timestamp
+---------------------
+	master sends: 
+		"FILETS /tmp\n"
+
+	slave replies:
+		"FILETS 1203342491\n"
+
+Find files/dirs newer than ts
+-----------------------------
+	master sends:
+		"NEWERTHAN <ts> <dir>\n"
+
+	slave replies:
+		"DIRECTORY "..
+		"FILE "..
+		"END"
+
+Creating a directory
+--------------------
+	master sends:
+		"MKDIR permission mtime ctime atime filename\n"
+	
+	client:
+		"MKDIR filename"
+
+Requesting a file/directory
+---------------------------
+	master sends:
+		"GET filename\n"
+
+	client replies:
+		"PUT size md5 permission mtime ctime atime filename\n"
+		octets [size bytes]
+	- or - 
+		"MKDIR permission mtime ctime atime filename\n"
+
+Sending a file
+--------------
+	master sends: 
+		"PUT size md5 permission mtime ctime atime filename\n"
+		octets [size bytes]
+
+	client replies:
+		"GET filename\n"
+
