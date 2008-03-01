@@ -131,7 +131,7 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 	readline(src, buffer, buffer_l);
 
 	if(memcmp("PUT ", buffer, 4) == 0 ) {
-		size_t size;
+		size_t size = 0;
 
 		{
 			char sizestr[10];
@@ -146,10 +146,9 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 
 		int bytes_left = size;
 		int r;
-		printf("Reading %d bytes\n", size);
 		conn_printf(dst, "%s\n", buffer);
+		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
 		while(!src->abort && bytes_left) {
-			printf("%d bytes left, rbuf_len(%d)..\n", bytes_left, src->rbuf_len);
 			if(src->rbuf_len == 0)
 				(void)conn_read(src);
 			r = MIN(bytes_left, src->rbuf_len);
@@ -162,6 +161,8 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 
 			assert(bytes_left >= 0);
 		}
+		readline(dst, buffer, buffer_l);
+		puts(buffer);
 	}
 	else if(memcmp("MKDIR ", buffer, 6) == 0 ) {
 		conn_printf(dst, "%s\n", buffer);
