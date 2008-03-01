@@ -12,4 +12,5 @@ echo "         (__)
  *  /\---/\ 
     ~~   ~~   
 ...."Have you mooed today?"...
-" >dir1/moo
+" >dir1/moo && touch -t 200701010000 dir1/moo
+

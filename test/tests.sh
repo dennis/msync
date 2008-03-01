@@ -65,7 +65,7 @@ echo -n "  t18 put............: "
 rm -f dir1/newfile
 
 echo -n "  t19 get (dir)......: "
-(echo -e "HELLO msync 1\nGET dir1" | ../src/msync -s dir1 | grep "MKDIR -rwxr-xr-x 1199142000" >/dev/null && echo OK) || echo FAIL
+(echo -e "HELLO msync 1\nGET dir1" | ../src/msync -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null && echo OK) || echo FAIL
 
 echo "** master tests"
 
