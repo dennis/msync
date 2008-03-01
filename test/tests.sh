@@ -72,5 +72,7 @@ echo "** master tests"
 echo -n "  t50 sync...........: "
 mkdir dir2
 ../src/msync dir1 dir2 >/dev/null
-(diff dir1 dir2 >/dev/null && echo OK) || echo FAIL
+(cd dir1 && ls -l . >/tmp/msync-t51-dir1.txt)
+(cd dir2 && ls -l . >/tmp/msync-t51-dir2.txt)
+(diff /tmp/msync-t51-dir?.txt >/dev/null && echo OK) || echo FAIL
 rm -r dir2
