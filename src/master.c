@@ -12,7 +12,8 @@
 #include "conn.h"
 #include "list.h"
 
-#define DMSG(x) { x }while(0)
+/*#define DMSG(x) { x }while(0)*/
+#define DMSG(x) 
 #define MAX(x,y) (x>y ? x :y)
 #define MIN(x,y) (x<y ? x :y)
 
