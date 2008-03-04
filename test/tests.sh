@@ -51,6 +51,23 @@ test_title() {
 	printf "  \e[33mt%02d\e[0m ${title}${str}: " $TESTNUM
 }
 
+sync_dirdiff() {
+	local src="$1"
+	local dst="$2"
+	local srctmp="/tmp/msync-${TESTNUM}-1.txt"
+	local dsttmp="/tmp/msync-${TESTNUM}-2.txt"
+	local r=0
+
+	mkdir $dst
+	$MSYNC $src $dst >/dev/null
+	(cd $src && ls -l . >$srctmp)
+	(cd $dst && ls -l . >$dsttmp)
+	diff $srctmp $dsttmp >/dev/null
+	test_okfail $?
+	rm -r $dst
+	rm $srctmp $dsttmp
+}
+
 test_okfail() {
 	local rc=$1 # IN
 	if [ $rc -eq 0 ]; then
@@ -217,24 +234,10 @@ test_section "Slave tests"
 test_section "master tests"
 TESTNUM=49
 	test_title "sync-1 (simple)"
-		mkdir dir1-copy
-		../src/msync dir1 dir1-copy >/dev/null
-		(cd dir1 && ls -l . >/tmp/msync-t51-dir1.txt)
-		(cd dir1-copy && ls -l . >/tmp/msync-t51-dir2.txt)
-		diff /tmp/msync-t51-dir?.txt >/dev/null
-		test_okfail $?
-		rm -r dir1-copy
-		rm /tmp/msync-t51-*
+		sync_dirdiff "dir1" "dir1-copy"
 
 	test_title "sync-2 (many subdirs)"
-		mkdir dir2-copy
-		../src/msync dir2 dir2-copy >/dev/null
-		(cd dir2 && ls -l . >/tmp/msync-t51-dir1.txt)
-		(cd dir2-copy && ls -l . >/tmp/msync-t51-dir2.txt)
-		diff /tmp/msync-t51-dir?.txt >/dev/null
-		test_okfail $?
-		rm -r dir2-copy
-		rm /tmp/msync-t51-*
+		sync_dirdiff "dir2" "dir2-copy"
 
 TESTNUM=95
 test_section "status"
