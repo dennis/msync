@@ -96,10 +96,16 @@ test_teardown() {
 
 ## 
 
-test_setup
+if test ! -f $MSYNC ; then
+	echo "$MSYNC not found, aborting"
+	exit
+fi
+if test -d dir1 ; then 
+	echo "dir1 not found, aborting";
+	exit
+fi
 
-test -f $MSYNC || (echo "$MSYNC not found, aborting")
-test -d dir1 || (echo "dir1 not found, aborting")
+test_setup
 
 test_section "Self tests"
 
