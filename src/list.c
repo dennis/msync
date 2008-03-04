@@ -24,11 +24,30 @@ THE SOFTWARE.
 #include "list.h"
 
 #include <assert.h>
+#include <stdlib.h>
+
+/*
+static void list_add_pre(node_t** top, node_t* node) {
+	node->next = *top;
+	*top = node;
+}
+*/
+
+static void list_add_post(node_t** top, node_t* node) {
+	if(*top) {
+		node_t* end;
+		for(end = *top; end && end->next; end = end->next);
+		end->next = node;
+		node->next = NULL;
+	}
+	else {
+		*top = node;
+		node->next = NULL;
+	}
+}
 
 void list_add(node_t** top, node_t* node) {
-	if(*top)
-		node->next = *top;
-	*top = node;
+	list_add_post(top, node);
 }
 
 void list_remove(node_t** top, node_t* node) {
