@@ -88,10 +88,18 @@ test_setup() {
     ~~   ~~   
 ...."Have you mooed today?"...
 ' >dir1/moo && touch -t 200701010000 dir1/moo
+
+	mkdir -p dir2/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9/dir10/dir11/dir12/dir13/dir14/dir15/dir16/dir17/dir18/dir19
+
+	# This will make msync fail, as it dosnt support links at all
+	mkdir dir3
+	touch dir3/normal
+	(cd dir3 && ln -s normal symlink)
+	(cd dir3 && ln normal hardlink)
 }
 
 test_teardown() {
-	rm -rf dir1
+	rm -rf dir1 dir2 dir3
 }
 
 ## 
@@ -100,12 +108,14 @@ if test ! -f $MSYNC ; then
 	echo "$MSYNC not found, aborting"
 	exit
 fi
-if test -d dir1 ; then 
+
+test_setup
+
+if test ! -d dir1 ; then 
 	echo "dir1 not found, aborting";
 	exit
 fi
 
-test_setup
 
 test_section "Self tests"
 
@@ -206,14 +216,24 @@ test_section "Slave tests"
 
 test_section "master tests"
 TESTNUM=49
-	test_title "sync-1"
-		mkdir dir2
-		../src/msync dir1 dir2 >/dev/null
+	test_title "sync-1 (simple)"
+		mkdir dir1-copy
+		../src/msync dir1 dir1-copy >/dev/null
 		(cd dir1 && ls -l . >/tmp/msync-t51-dir1.txt)
-		(cd dir2 && ls -l . >/tmp/msync-t51-dir2.txt)
+		(cd dir1-copy && ls -l . >/tmp/msync-t51-dir2.txt)
 		diff /tmp/msync-t51-dir?.txt >/dev/null
 		test_okfail $?
-		rm -r dir2
+		rm -r dir1-copy
+		rm /tmp/msync-t51-*
+
+	test_title "sync-2 (many subdirs)"
+		mkdir dir2-copy
+		../src/msync dir2 dir2-copy >/dev/null
+		(cd dir2 && ls -l . >/tmp/msync-t51-dir1.txt)
+		(cd dir2-copy && ls -l . >/tmp/msync-t51-dir2.txt)
+		diff /tmp/msync-t51-dir?.txt >/dev/null
+		test_okfail $?
+		rm -r dir2-copy
 		rm /tmp/msync-t51-*
 
 TESTNUM=95
