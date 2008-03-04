@@ -313,14 +313,13 @@ static void proto_handle_mkdir(conn_t* cn, const char* line) {
 
 	if(mkdir(name,mode) == -1 && errno != EEXIST) {
 		perror("mkdir");
-		conn_printf(cn, "WARNING Can't create directory: %s\n", name);
+		conn_printf(cn, "ERROR Can't create directory: %s\n", name);
 		return;
 	}
 
 	if(chmod(name,mode)==-1) {
 		perror("chmod");
 		conn_printf(cn, "WARNING Can't change permissions on directory: %s\n", name);
-		return;
 	}
 
 	struct utimbuf t;
