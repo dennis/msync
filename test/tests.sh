@@ -112,11 +112,14 @@ test_setup() {
 	mkdir dir3
 	touch dir3/normal
 	(cd dir3 && ln -s normal symlink)
-	(cd dir3 && ln normal hardlink)
+
+	mkdir dir4
+	touch dir4/normal
+	(cd dir4 && ln normal hardlink)
 }
 
 test_teardown() {
-	rm -rf dir1 dir2 dir3
+	rm -rf dir1 dir2 dir3 dir4
 }
 
 ## 
@@ -238,6 +241,12 @@ TESTNUM=49
 
 	test_title "sync-2 (many subdirs)"
 		sync_dirdiff "dir2" "dir2-copy"
+
+	test_title "sync-3 (symlink)"
+		sync_dirdiff "dir3" "dir3-copy"
+
+	test_title "sync-4 (hardlink)"
+		sync_dirdiff "dir4" "dir4-copy"
 
 TESTNUM=95
 test_section "status"
