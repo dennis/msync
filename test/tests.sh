@@ -112,14 +112,22 @@ test_setup() {
 	mkdir dir3
 	touch dir3/normal
 	(cd dir3 && ln -s normal symlink)
+	mkdir dir3/dir1
+	(cd dir3/dir1 && ln -s ../normal symlink2)
 
 	mkdir dir4
 	touch dir4/normal
 	(cd dir4 && ln normal hardlink)
+	mkdir dir4/dir1
+	(cd dir4/dir1 && ln ../normal hardlink2)
+
+	mkdir dir5
+	touch dir5/normal
+	(cd dir5 && ln -s ../tests.sh outsider.sh)
 }
 
 test_teardown() {
-	rm -rf dir1 dir2 dir3 dir4
+	rm -rf dir1 dir2 dir3 dir4 dir5
 }
 
 ## 
@@ -175,12 +183,12 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "newerthan-2"
-		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199141999 ." | ../src/msync -s dir1 | wc -l`
+		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199141999 ." | $MSYNC -s dir1 | wc -l`
 		expr $C = 6 >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-1"
-		echo -e "HELLO msync 1\nMKDIR -rwxr--r-- 1199141999 1199141999 1199141999 new-dir" | ../src/msync -s dir1 | grep "MKDIR new-dir" >/dev/null
+		echo -e "HELLO msync 1\nMKDIR -rwxr--r-- 1199141999 1199141999 1199141999 new-dir" | $MSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-2"
@@ -188,7 +196,7 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "mkdir-3"
-		echo -e "HELLO msync 1\nMKDIR -rwxr-xr-x 1199141999 1199141999 1199141999 new-dir" | ../src/msync -s dir1 | grep "MKDIR new-dir" >/dev/null 
+		echo -e "HELLO msync 1\nMKDIR -rwxr-xr-x 1199141999 1199141999 1199141999 new-dir" | $MSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null 
 		test_okfail $?
 
 	test_title "mkdir-4"
@@ -198,16 +206,16 @@ test_section "Slave tests"
 	rmdir dir1/new-dir
 
 	test_title "get-1"
-		echo -e "HELLO msync 1\nGET file1" | ../src/msync -s dir1 | \
+		echo -e "HELLO msync 1\nGET file1" | $MSYNC -s dir1 | \
 			grep "PUT 11 0de32d6332a8f69f3a3f66cefe8923ac -rw-r--r-- 1199142000" | grep "1199142000 file1" >/dev/null
 		test_okfail $?
 
 	test_title "get-2"
-		echo -e "HELLO msync 1\nGET file1" | ../src/msync -s dir1 | grep "dir1/file1" >/dev/null 
+		echo -e "HELLO msync 1\nGET file1" | $MSYNC -s dir1 | grep "dir1/file1" >/dev/null 
 		test_okfail $?
 	
 	test_title "put-1"
-		echo -e "HELLO msync 1\nPUT 0 d41d8cd98f00b204e9800998ecf8427e -r--r--r-- 1199141999 1199141999 1199141999 newfile" | ../src/msync -s dir1 | grep "GET newfile" >/dev/null 
+		echo -e "HELLO msync 1\nPUT 0 d41d8cd98f00b204e9800998ecf8427e -r--r--r-- 1199141999 1199141999 1199141999 newfile" | $MSYNC -s dir1 | grep "GET newfile" >/dev/null 
 		test_okfail $?
 
 	test_title "put-2"
@@ -221,7 +229,7 @@ test_section "Slave tests"
 	rm -f dir1/newfile
 
 	test_title "put-4"
-		echo -e "HELLO msync 1\nPUT 6 3858f62230ac3c915f300c664312c63f -r--r--r-- 1199141999 1199141999 1199141999 newfile\nfoobar" | ../src/msync -s dir1 | grep "GET newfile"  >/dev/null
+		echo -e "HELLO msync 1\nPUT 6 3858f62230ac3c915f300c664312c63f -r--r--r-- 1199141999 1199141999 1199141999 newfile\nfoobar" | $MSYNC -s dir1 | grep "GET newfile"  >/dev/null
 		test_okfail $?
 
 	test_title "put-5"
@@ -231,7 +239,7 @@ test_section "Slave tests"
 	rm -f dir1/newfile
 
 	test_title "get-3"
-		echo -e "HELLO msync 1\nGET dir1" | ../src/msync -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null
+		echo -e "HELLO msync 1\nGET dir1" | $MSYNC -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null
 		test_okfail $?
 
 test_section "master tests"
@@ -247,6 +255,14 @@ TESTNUM=49
 
 	test_title "sync-4 (hardlink)"
 		sync_dirdiff "dir4" "dir4-copy"
+
+	test_title "sync-5 (symlinks)"
+		mkdir dir5-copy
+		$MSYNC dir5 dir5-copy >/dev/null
+		C=`ls -l dir5-copy/ | wc -l`
+		expr $C = 1 >/dev/null
+		test_okfail $?
+		rm -rf dir5-copy
 
 TESTNUM=95
 test_section "status"
