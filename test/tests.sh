@@ -65,7 +65,7 @@ sync_dirdiff() {
 	diff $srctmp $dsttmp >/dev/null
 	test_okfail $?
 	rm -r $dst
-	rm $srctmp $dsttmp
+	#rm $srctmp $dsttmp
 }
 
 test_okfail() {
@@ -108,9 +108,8 @@ test_setup() {
 
 	mkdir -p dir2/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9/dir10/dir11/dir12/dir13/dir14/dir15/dir16/dir17/dir18/dir19
 
-	# This will make msync fail, as it dosnt support links at all
 	mkdir dir3
-	touch dir3/normal
+	touch -t 200801010000 dir3/normal 
 	(cd dir3 && ln -s normal symlink)
 	mkdir dir3/dir1
 	(cd dir3/dir1 && ln -s ../normal symlink2)
@@ -241,6 +240,19 @@ test_section "Slave tests"
 	test_title "get-3"
 		echo -e "HELLO msync 1\nGET dir1" | $MSYNC -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null
 		test_okfail $?
+	
+	test_title "symlink-1"
+		echo -e "HELLO msync 1\nGET symlink" | $MSYNC -s dir3 | egrep "SLNK symlink" >/dev/null
+		test_okfail $?
+
+	test_title "symlink-2"
+		mkdir testdir
+		touch testdir/normal
+		echo -e "HELLO msync 1\nSLNK symlink\nnormal" | $MSYNC -s testdir >/dev/null
+		test -h testdir/symlink
+		test_okfail $?
+		rm -rf testdir
+		
 
 test_section "master tests"
 TESTNUM=49
@@ -268,6 +280,5 @@ TESTNUM=95
 test_section "status"
 	test_title "Test OK"; echo $TEST_OK_COUNT
 	test_title "Test FAIL"; echo $TEST_FAIL_COUNT
-
 
 test_teardown

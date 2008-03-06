@@ -6,7 +6,16 @@ TODO
 		PUT
 		MKDIR
 	- support for symlinks?
+		- buggy (tests.sh fails)
 	- support for hardlinks?
+		- when doing FILETS on source, make a list of any files with more than one hard links
+			- record 
+				- the path/name
+				- the mtime
+				- inode
+			- if multiple files is found for same inode, record the oldest
+		- new protocol command:
+			- HLINK permission atime ctime mtime filename orgfilename ?
 	- tdiff implementation
 	- http://varnish.projects.linpro.no/browser/trunk/varnish-cache
 

@@ -101,8 +101,8 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 			}
 		}
 		else if(S_ISLNK(st.st_mode)) {
-			if( ts < st.st_mtime)
-				conn_printf(cn, "WARNING SLNK Symlinks is not supported %s\n", dir);
+			if( ts < st.st_mtime) 
+				conn_printf(cn, "SLNK %s\n", dir);
 		}
 		else {
 			// Ignore everything else
@@ -314,8 +314,9 @@ static void proto_handle_mkdir(conn_t* cn, const char* line) {
 	}
 
 	if(mkdir(name,mode) == -1 && errno != EEXIST) {
-		perror("mkdir");
+		perror("ERROR mkdir");
 		conn_printf(cn, "ERROR Can't create directory: %s\n", name);
+		conn_abort(cn);
 		return;
 	}
 
@@ -360,7 +361,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 		return;
 	}
 
-	if(stat(line,&st) == 0) {
+	if(lstat(line,&st) == 0) {
 		if(S_ISREG(st.st_mode)) {
 			int fd;
 			md5_state_t md5_state;
@@ -384,7 +385,8 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				md5_finish(&md5_state, (unsigned char*)md5bin);
 
 				if(lseek(fd, SEEK_SET, 0)==-1) {
-					perror("WARNING perror()");
+					perror("ERROR lseek()");
+					conn_abort(cn);
 					return;
 				}
 
@@ -413,6 +415,18 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				st.st_ctime,
 				st.st_mtime,
 				line);
+		}
+		else if(S_ISLNK(st.st_mode)) {
+			const int buffer_l = 1024; char buffer[buffer_l];
+			conn_printf(cn, "SLNK %s\n", line);
+
+			ssize_t l;
+			if((l=readlink(line, buffer, buffer_l))==-1) {
+				perror("ERROR readlink()");
+				return;
+			}
+			buffer[l] = (char)NULL;
+			conn_printf(cn, "%s\n", buffer);
 		}
 		else {
 			conn_printf(cn, "WARNING Ignored %s\n", line);
@@ -521,6 +535,24 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 	}
 }
 
+static void proto_handle_slnk(conn_t* cn, const char* line) {
+	char* name = (char*)line;
+
+	// read next line to get target
+	const int buffer_l = 1024; char buffer[buffer_l];
+	if(!conn_readline(cn, buffer, buffer_l))
+		return;
+	
+	// Make sure it dosnt exist
+	unlink(name);
+
+	if(symlink(buffer, name)==-1) {
+		perror("ERROR symlink()");
+		conn_abort(cn);
+		return;
+	}
+}
+
 static void proto_delegator(conn_t* cn, const char* line) {
 	if(memcmp(line, "ERROR ",6) == 0)
 		proto_handle_error(cn, line+6);
@@ -553,6 +585,9 @@ static void proto_delegator(conn_t* cn, const char* line) {
 		}
 		else if(memcmp(line, "PUT ",4) == 0) {
 			proto_handle_put(cn, line+4);
+		}
+		else if(memcmp(line, "SLNK ", 5) == 0) {
+			proto_handle_slnk(cn, line+5);
 		}
 		else {
 			conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);

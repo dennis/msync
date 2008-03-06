@@ -67,6 +67,9 @@ Requesting a file/directory
 		octets [size bytes]
 	- or - 
 		"MKDIR permission atime ctime mtime filename\n"
+	- or -
+		"SLNK filename\n"
+		target-file
 
 Sending a file
 --------------

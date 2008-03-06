@@ -186,12 +186,20 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 			assert(bytes_left >= 0);
 		}
 		readline(dst, buffer, buffer_l);
-		puts(buffer);
+		// TODO: Verify response 
 	}
 	else if(memcmp("MKDIR ", buffer, 6) == 0 ) {
 		conn_printf(dst, "%s\n", buffer);
+		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
 		readline(dst, buffer, buffer_l);
-		puts(buffer);
+		// TODO: Verify response 
+	}
+	else if(memcmp("SLNK ", buffer, 5) == 0 ) {
+		conn_printf(dst, "%s\n", buffer);
+		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+		readline(src, buffer, buffer_l);
+		conn_printf(dst, "%s\n", buffer);
+		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
 	}
 	else {
 		puts(buffer);
