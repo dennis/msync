@@ -44,8 +44,9 @@ Find files/dirs newer than ts
 		"NEWERTHAN <ts> <dir>\n"
 
 	slave replies:
-		"DIRECTORY "..
+		"DIR "..
 		"FILE "..
+		"SLNK "..
 		"END"
 
 Creating a directory

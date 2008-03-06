@@ -41,6 +41,7 @@ THE SOFTWARE.
 
 #include "md5.h"
 #include "conn.h"
+#include "list.h"
 
 #define MAX(x,y) (x>y ? x : y)
 #define MIN(x,y) (x<y ? x : y)
@@ -64,10 +65,7 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 	// We're chdir() into the directory of "dir", so we need "basename" of dir, to stats on
 	p = basename(dir);
 
-	//getcwd(buffer, buffer_l);
-	//fprintf(stderr, "find_newerthan_ts_worker(): cwd = %s, dir = %s, p = %s\n", buffer, dir, p);
-
-	if(stat(p,&st) == 0) {
+	if(lstat(p,&st) == 0) {
 		if(S_ISREG(st.st_mode)) {	
 			if( ts < st.st_mtime)
 				conn_printf(cn, "FILE %s\n", dir);
@@ -101,6 +99,10 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 			else {
 				perror("opendir()");
 			}
+		}
+		else if(S_ISLNK(st.st_mode)) {
+			if( ts < st.st_mtime)
+				conn_printf(cn, "WARNING SLNK Symlinks is not supported %s\n", dir);
 		}
 		else {
 			// Ignore everything else
