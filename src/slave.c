@@ -228,7 +228,7 @@ static time_t find_newest_timestamp_worker(conn_t* cn, const char* dir) {
 	return mtime;
 }
 
-static void proto_handle_filets(conn_t* cn, const char* dir) {
+static void proto_handle_scan(conn_t* cn, const char* dir) {
 	const int curdir_l = 1024; char curdir[curdir_l];
 	time_t t;
 
@@ -236,7 +236,7 @@ static void proto_handle_filets(conn_t* cn, const char* dir) {
 	t = find_newest_timestamp_worker(cn, dir);
 	chdir(curdir);
 
-	conn_printf(cn, "FILETS %ld\n", (long int)t);
+	conn_printf(cn, "SCAN %ld\n", (long int)t);
 }
 
 static mode_t str2mode(const char* line) {
@@ -537,8 +537,8 @@ static void proto_delegator(conn_t* cn, const char* line) {
 		if(memcmp(line, "GETTIME\0",8) == 0) {
 			proto_handle_gettime(cn);
 		}
-		else if(memcmp(line, "FILETS ",7) == 0) {
-			proto_handle_filets(cn, line+7);
+		else if(memcmp(line, "SCAN ",5) == 0) {
+			proto_handle_scan(cn, line+5);
 		}
 		else if(memcmp(line, "NEWERTHAN ",10) == 0) {
 			proto_handle_newerthan(cn, line+10);

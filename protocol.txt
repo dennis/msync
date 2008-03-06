@@ -33,10 +33,10 @@ Time adjustmenet
 Find newest timestamp
 ---------------------
 	master sends: 
-		"FILETS /tmp\n"
+		"SCAN /tmp\n"
 
 	slave replies:
-		"FILETS 1203342491\n"
+		"SCAN 1203342491\n"
 
 Find files/dirs newer than ts
 -----------------------------

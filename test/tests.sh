@@ -174,7 +174,7 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "filets"
-		echo -e "HELLO msync 1\nFILETS ." | $MSYNC -s dir1 | grep "FILETS 1199142000" >/dev/null 
+		echo -e "HELLO msync 1\nSCAN ." | $MSYNC -s dir1 | grep "SCAN 1199142000" >/dev/null 
 		test_okfail $?
 
 	test_title "newerthan-1"

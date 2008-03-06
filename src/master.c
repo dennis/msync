@@ -105,10 +105,10 @@ static int proto_handshake(conn_t* cn) {
 	return memcmp("HELLO\0", buffer, 6) == 0;
 }
 
-static time_t proto_filets(conn_t* cn) {
+static time_t proto_scan(conn_t* cn) {
 	const int buffer_l = 256; char buffer[buffer_l];
-	conn_printf(cn, "FILETS .\n");
-	DMSG(printf("%lx > FILETS .\n", (long int)cn););
+	conn_printf(cn, "SCAN .\n");
+	DMSG(printf("%lx > SCAN .\n", (long int)cn););
 	if(readline(cn, buffer, buffer_l)==0) 
 		return 0;
 
@@ -257,7 +257,7 @@ int master(context_t* ctx) {
 			//printf("tdiff: %ld\n", tdiff);
 
 			// Find the newest file at dst
-			dst_newest_ts = proto_filets(&dst_conn) - tdiff;
+			dst_newest_ts = proto_scan(&dst_conn) - tdiff;
 
 			if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
 				fileentry_t* transferlist = NULL;
