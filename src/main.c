@@ -23,8 +23,6 @@ THE SOFTWARE.
 */
 #include "../config.h"
 
-#define _XOPEN_SOURCE	// for strptime
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -49,7 +47,6 @@ static void usage() {
 		"  -h  --help              : This text.\n"
 		"  -q  --quiet             : Minimal output.\n"
 		"  -s  --slave             : Start in slave mode.\n"
-		"  -t  --time <time>       : Use <time> for timestamp.\n"
 		"  -v  --version           : Display version and exit.\n"
 		"\n");
 }
@@ -63,30 +60,6 @@ static char strdigit(const char* s) {
 	}
 
 	return 1;
-}
-
-static time_t parse_timestr(const char* s) {
-	time_t time;
-	struct tm t;
-
-	assert(s);
-
-	// Parse ISO 8601 + h:m:s
-	strptime(s,"%F %T", &t);
-	time = mktime(&t);
-	if(time != -1) return time;
-
-	// Parse ISO 8601
-	strptime(s,"%F", &t);
-	time = mktime(&t);
-	if(time != -1) return time;
-
-	// seconds since epoch
-	strptime(s, "%s", &t);
-	time = mktime(&t);
-	if(time != -1) return time;
-
-	return -1;
 }
 
 static int is_slave(const char* param) {
@@ -122,7 +95,6 @@ static int master_mode(int argc, char* argv[]) {
 		{"dry-run",	0,	NULL,	'd'},
 		{"help",	0,	NULL,	'h'},
 		{"quiet",	0,	NULL,	'q'},
-		{"time",	1,	NULL,	't'},
 		{"version",	0,	NULL,	'v'},
 		{0, 0, 0, 0}
 	};
@@ -135,7 +107,7 @@ static int master_mode(int argc, char* argv[]) {
 	ctx_init(&ctx);
 	ctx.msync = argv[0];
 
-	while((c = getopt_long(argc, argv, "a:dhqt:v", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a:dhq:v", long_options, NULL)) != -1) {
 		switch(c) {
 			case 'a': {
 				ctx.adjust = atoi(optarg);
@@ -155,34 +127,6 @@ static int master_mode(int argc, char* argv[]) {
 				break;
 			case 'q':
 				ctx.quiet = 1;
-				break;
-			case 't':
-				if(strcmp("yesterday", optarg)==0) {
-					struct tm yday;
-					time_t now = time(NULL);
-					localtime_r(&now, &yday);
-					yday.tm_sec = 0;
-					yday.tm_min = 0;
-					yday.tm_hour = 0;
-					yday.tm_mday--;
-					ctx.time = mktime(&yday);
-				}
-				else if(strcmp("midnight", optarg)==0) {
-					struct tm yday;
-					time_t now = time(NULL);
-					localtime_r(&now, &yday);
-					yday.tm_sec = 0;
-					yday.tm_min = 0;
-					yday.tm_hour = 0;
-					ctx.time = mktime(&yday);
-				}
-				else if(*optarg == '+') {
-					ctx.time = parse_timestr(++optarg);
-				}
-				else {
-					fprintf(stderr, "%s: unknown time option '%s'\n", argv[0], optarg);
-					return 1;
-				}
 				break;
 			case 'v':
 				printf("msync version %s\n", VERSION);
