@@ -97,7 +97,7 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 				closedir(dirp);
 			}
 			else {
-				perror("opendir()");
+				conn_perror(cn,"WARNING opendir()");
 			}
 		}
 		else if(S_ISLNK(st.st_mode)) {
@@ -110,7 +110,7 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 		}
 	}
 	else {
-		perror("stat()");
+		conn_perror(cn,"WARNING stat()");
 	}
 }
 
@@ -314,14 +314,14 @@ static void proto_handle_mkdir(conn_t* cn, const char* line) {
 	}
 
 	if(mkdir(name,mode) == -1 && errno != EEXIST) {
-		perror("ERROR mkdir");
+		conn_perror(cn, "WARNING mkdir()");
 		conn_printf(cn, "ERROR Can't create directory: %s\n", name);
 		conn_abort(cn);
 		return;
 	}
 
 	if(chmod(name,mode)==-1) {
-		perror("chmod");
+		conn_perror(cn,"WARNING chmod()");
 		conn_printf(cn, "WARNING Can't change permissions on directory: %s\n", name);
 	}
 
@@ -329,7 +329,7 @@ static void proto_handle_mkdir(conn_t* cn, const char* line) {
 	t.actime = atime;
 	t.modtime = mtime;
 	if(utime(name,&t)==-1) {
-		perror("utime");
+		conn_perror(cn, "WARNING utime");
 		conn_printf(cn, "WARNING Can't timestamp on directory: %s\n", name);
 	}
 
@@ -372,7 +372,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 			char modestr[11];
 
 			if((fd = open(line,O_NOATIME))==-1) {
-				perror("open()");
+				conn_perror(cn, "WARNING open()");
 				conn_printf(cn, "WARNING Can't open file: %s\n", line);
 				return;
 			}
@@ -385,7 +385,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				md5_finish(&md5_state, (unsigned char*)md5bin);
 
 				if(lseek(fd, SEEK_SET, 0)==-1) {
-					perror("ERROR lseek()");
+					conn_perror(cn, "ERROR lseek()");
 					conn_abort(cn);
 					return;
 				}
@@ -422,7 +422,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 
 			ssize_t l;
 			if((l=readlink(line, buffer, buffer_l))==-1) {
-				perror("ERROR readlink()");
+				conn_perror(cn, "WARNING readlink()");
 				return;
 			}
 			buffer[l] = (char)NULL;
@@ -471,7 +471,7 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 
 	int fd = creat(name, O_CREAT|O_TRUNC);
 	if(fd == -1) {
-		perror("WARNING creat()");
+		conn_perror(cn, "WARNING creat()");
 		return;
 	}
 
