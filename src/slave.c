@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include <utime.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include "md5.h"
 #include "conn.h"
@@ -536,21 +537,28 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 }
 
 static void proto_handle_slnk(conn_t* cn, const char* line) {
+	const int curdir_l = 1024; char curdir[curdir_l];
 	char* name = (char*)line;
 
 	// read next line to get target
-	const int buffer_l = 1024; char buffer[buffer_l];
-	if(!conn_readline(cn, buffer, buffer_l))
+	const int target_l = 1024; char target[target_l];
+	if(!conn_readline(cn, target, target_l))
 		return;
 	
 	// Make sure it dosnt exist
 	unlink(name);
 
-	if(symlink(buffer, name)==-1) {
+	getcwd(curdir, curdir_l);
+
+	chdir(dirname(line));
+
+	if(symlink(target, name)==-1) {
 		perror("ERROR symlink()");
 		conn_abort(cn);
 		return;
 	}
+
+	chdir(curdir);
 }
 
 static void proto_delegator(conn_t* cn, const char* line) {
