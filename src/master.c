@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include "list.h"
 
 /*#define DMSG(x) { x }while(0)*/
-#define DMSG(x) 
+#define DMSG(x)
 #define MAX(x,y) (x>y ? x :y)
 #define MIN(x,y) (x<y ? x :y)
 
@@ -114,23 +114,6 @@ static time_t proto_scan(conn_t* cn) {
 
 	return atol(buffer+7);
 }
-
-/*
-static long proto_gettime(conn_t* cn) {
-	const int buffer_l = 256; char buffer[buffer_l];
-	conn_printf(cn, "GETTIME\n");
-
-	if(readline(cn, buffer, buffer_l)==0) 
-		return 0;
-
-	puts(buffer);
-	
-	// ASSUME we got a GETTIME %d response
-	char* p = buffer+9;
-
-	return atol(p);
-}
-*/
 
 static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
 	const int buffer_l = 1024; char buffer[buffer_l];
