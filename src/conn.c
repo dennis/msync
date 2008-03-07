@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <errno.h>
 
 void conn_init(conn_t* cn) {
 	memset(cn,0,sizeof(conn_t));
@@ -118,6 +119,12 @@ ssize_t conn_printf(conn_t* cn, const char* format, ...) {
 	int s = vsnprintf(buffer, 512, format, vl);
 	assert(s<512); // Nothing truncated
 	return conn_write(cn,buffer,s);
+}
+
+ssize_t conn_perror(conn_t* cn, const char* str) {
+	if(str)
+		conn_printf(cn, "%s: ", str);
+	return conn_printf(cn, "%s\n", strerror(errno));
 }
 
 void conn_abort(conn_t* cn) {
