@@ -54,18 +54,19 @@ test_title() {
 sync_dirdiff() {
 	local src="$1"
 	local dst="$2"
-	local srctmp="/tmp/msync-${TESTNUM}-1.txt"
-	local dsttmp="/tmp/msync-${TESTNUM}-2.txt"
+	local srctmp="/tmp/msync-${TESTNUM}-src.txt"
+	local dsttmp="/tmp/msync-${TESTNUM}-dst.txt"
+	local msttmp="/tmp/msync-${TESTNUM}-mst.txt"
 	local r=0
 
 	mkdir $dst
-	$MSYNC $src $dst >/dev/null
+	$MSYNC $src $dst >$msttmp
 	(cd $src && ls -l . >$srctmp)
 	(cd $dst && ls -l . >$dsttmp)
 	diff $srctmp $dsttmp >/dev/null
 	test_okfail $?
 	rm -r $dst
-	#rm $srctmp $dsttmp
+	rm $srctmp $dsttmp $msttmp
 }
 
 test_okfail() {
