@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "../config.h"
+
 #include "slave.h"
 
 #include <stdio.h>
@@ -38,7 +39,7 @@ THE SOFTWARE.
 #include <utime.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <libgen.h>
+#include <string.h>
 
 #include "md5.h"
 #include "conn.h"
@@ -86,8 +87,7 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 						const int oldcwd_l = 1024; char oldcwd[oldcwd_l];
 						getcwd(oldcwd, oldcwd_l);
 
-						buffer[0] = (char)NULL;
-						strcat(buffer,dir);
+						strcpy(buffer,dir);
 						strcat(buffer, "/");
 						strcat(buffer, dp->d_name);
 						chdir(p);
@@ -547,11 +547,11 @@ static void proto_handle_slnk(conn_t* cn, const char* line) {
 	
 	// Make sure it dosnt exist
 	unlink(name);
-
 	getcwd(curdir, curdir_l);
 
 	chdir(dirname(line));
-
+	
+	conn_printf(cn, "WARNING symlink('%s','%s')\n", target, name);
 	if(symlink(target, name)==-1) {
 		perror("ERROR symlink()");
 		conn_abort(cn);
@@ -571,7 +571,7 @@ static void proto_delegator(conn_t* cn, const char* line) {
 			proto_handle_hello(cn, line+6);
 		}
 		else {
-			conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
+			conn_printf(cn, "ERROR Protocol violation (%d) '%s'\n", __LINE__, line);
 			conn_abort(cn);
 		}
 	}
