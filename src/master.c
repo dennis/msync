@@ -197,6 +197,7 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 		readline(src, buffer, buffer_l);
 		conn_printf(dst, "%s\n", buffer);
 		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+		expect_keyword(dst, "GET");
 	}
 	else {
 		puts(buffer);
