@@ -61,8 +61,8 @@ sync_dirdiff() {
 
 	mkdir $dst
 	$MSYNC $src $dst >$msttmp
-	(cd $src && ls -l . >$srctmp)
-	(cd $dst && ls -l . >$dsttmp)
+	(cd $src && ls -lR . >$srctmp)
+	(cd $dst && ls -lR . >$dsttmp)
 	diff $srctmp $dsttmp >/dev/null
 	test_okfail $?
 	rm -r $dst
