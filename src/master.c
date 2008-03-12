@@ -101,7 +101,14 @@ static int expect_keyword(conn_t* cn, const char* keyword) {
 	if(readline(cn, buffer, buffer_l)==0)
 		return 0;
 
-	return memcmp(keyword, buffer, strlen(keyword)) == 0;
+	if(memcmp(keyword, buffer, strlen(keyword)) == 0) {
+		return 1;
+	}
+	else {
+		conn_printf(cn, "ERROR Expected '%s' got '%s'\n", keyword, buffer);
+		conn_abort(cn);
+		return 0;
+	}
 }
 
 static int proto_handshake(conn_t* cn) {
