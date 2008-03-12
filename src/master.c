@@ -83,16 +83,25 @@ static int readline(conn_t* cn, char* buffer, size_t size) {
 	DMSG(printf("%lx < %s\n", (long int)cn, buffer););
 
 	if(memcmp("ERROR ", buffer, 6)==0) {
-		puts(buffer+6);
+		puts(buffer);
 		conn_abort(cn);
 		return 0;
 	}
 	else if(memcmp("WARNING ", buffer, 8)==0) {
-		puts(buffer+8);
+		puts(buffer);
 		return readline(cn, buffer, size);
 	}
 
 	return l;
+}
+
+static int expect_keyword(conn_t* cn, const char* keyword) {
+	const int buffer_l = 256; char buffer[buffer_l];
+
+	if(readline(cn, buffer, buffer_l)==0)
+		return 0;
+
+	return memcmp(keyword, buffer, strlen(keyword)) == 0;
 }
 
 static int proto_handshake(conn_t* cn) {
@@ -168,14 +177,12 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 
 			assert(bytes_left >= 0);
 		}
-		readline(dst, buffer, buffer_l);
-		// TODO: Verify response 
+		expect_keyword(dst, "GET");
 	}
 	else if(memcmp("MKDIR ", buffer, 6) == 0 ) {
 		conn_printf(dst, "%s\n", buffer);
 		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-		readline(dst, buffer, buffer_l);
-		// TODO: Verify response 
+		expect_keyword(dst, "MKDIR");
 	}
 	else if(memcmp("SLNK ", buffer, 5) == 0 ) {
 		conn_printf(dst, "%s\n", buffer);
