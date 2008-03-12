@@ -536,29 +536,66 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 	}
 }
 
+// My own implementation of dirname(), since _GNU_SOURCE only got basename()
+static char* dirname(const char* src) {
+	static char result[PATH_MAX];
+
+	if(strcmp(src,".")==0) {
+		strcpy(result, ".");
+	}
+	else if(strcmp(src,"..")==0) {
+		strcpy(result, ".");
+	}
+	else if(strcmp(src,"/")==0) {
+		strcpy(result, "/");
+	}
+	else {
+		strcpy(result, src);
+		int l = strlen(result);
+
+		// strip tailing / if any
+		int i;
+		for(i=l-1; i>=0 && result[i] != '/'; i--)  
+			result[i] = (char)NULL;
+			
+		// strip until next / (reverse) - this will remove the basename()
+		for(; i>=0 && result[i] != '/'; i--)
+			result[i] = (char)NULL;
+
+		if(result[0] == (char)NULL)
+			strcpy(result, ".");
+	}
+
+	return result;
+}
+
 static void proto_handle_slnk(conn_t* cn, const char* line) {
 	const int curdir_l = 1024; char curdir[curdir_l];
-	char* name = (char*)line;
 
 	// read next line to get target
 	const int target_l = 1024; char target[target_l];
 	if(!conn_readline(cn, target, target_l))
 		return;
-	
-	// Make sure it dosnt exist
-	unlink(name);
+
 	getcwd(curdir, curdir_l);
 
-	chdir(dirname(line));
-	
-	conn_printf(cn, "WARNING symlink('%s','%s')\n", target, name);
-	if(symlink(target, name)==-1) {
-		perror("ERROR symlink()");
+	// Make sure it dosnt exist
+	unlink(line);
+
+	if(chdir(dirname(line))==-1) {
+		conn_perror(cn, "WARNING chdir()");
+		return;
+	}
+
+	if(symlink(target, basename(line))==-1) {
+		conn_perror(cn, "ERROR symlink()");
 		conn_abort(cn);
 		return;
 	}
 
 	chdir(curdir);
+
+	conn_printf(cn, "GET %s\n", line);
 }
 
 static void proto_delegator(conn_t* cn, const char* line) {
