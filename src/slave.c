@@ -48,6 +48,20 @@ THE SOFTWARE.
 #define MAX(x,y) (x>y ? x : y)
 #define MIN(x,y) (x<y ? x : y)
 
+struct newerthan_data {
+	conn_t*	cn;
+	time_t	ts;
+};
+
+struct scan_data {
+	conn_t*	cn;
+	time_t	ts;
+};
+
+
+typedef void (*handle_entry_t)(void*, struct stat*, const char* file);
+typedef void (*handle_perror_t)(void*, const char* str);
+
 static void proto_handle_error(conn_t* cn, const char* line) {
 	fprintf(stderr, "ERROR %s\n", line);
 	conn_abort(cn);
@@ -58,8 +72,10 @@ static void proto_handle_warning(conn_t* cn, const char* line) {
 	fprintf(stderr, "WARNING %s\n", line);
 }
 
-static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
-	const int buffer_l = 1024; char buffer[buffer_l];
+static void traverse_directory(const char* dir, void* data, 
+	handle_entry_t handle_entry, handle_perror_t handle_perror) {
+
+	const int buffer_l = PATH_MAX; char buffer[PATH_MAX];
 	struct stat st;
 	DIR *dirp;
 	char* p;
@@ -68,14 +84,8 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 	p = basename(dir);
 
 	if(lstat(p,&st) == 0) {
-		if(S_ISREG(st.st_mode)) {	
-			if( ts < st.st_mtime)
-				conn_printf(cn, "FILE %s\n", dir);
-		}
-		else if(S_ISDIR(st.st_mode)) {
-			if(ts < st.st_mtime && strcmp(".", p) != 0 && strcmp("..", p) != 0)
-				conn_printf(cn, "DIR  %s\n", dir);
-
+		handle_entry(data, &st, dir);
+		if(S_ISDIR(st.st_mode)) {
 			// scan the directory
 			struct dirent* dp;
 			getcwd(buffer, buffer_l);
@@ -91,36 +101,59 @@ static void find_newerthan_ts_worker(conn_t* cn, time_t ts, const char* dir) {
 						strcat(buffer, "/");
 						strcat(buffer, dp->d_name);
 						chdir(p);
-						find_newerthan_ts_worker(cn, ts, buffer);
+						traverse_directory(buffer, data, handle_entry, handle_perror);
 						chdir(oldcwd);
 					}
 				}
 				closedir(dirp);
 			}
 			else {
-				conn_perror(cn,"WARNING opendir()");
+				if(handle_perror) handle_perror(data, "WARNING opendir()");
 			}
-		}
-		else if(S_ISLNK(st.st_mode)) {
-			if( ts < st.st_mtime) 
-				conn_printf(cn, "SLNK %s\n", dir);
-		}
-		else {
-			// Ignore everything else
-			conn_printf(cn, "WARNING Ignored %s\n", dir);
 		}
 	}
 	else {
-		conn_perror(cn,"WARNING stat()");
+		if(handle_perror) handle_perror(data, "WARNING stat()");
+	}
+}
+
+static void find_newerthan_ts_perror(void* data, const char* str) {
+	conn_t* cn = ((struct newerthan_data*)data)->cn;
+	conn_printf(cn, "WARNING %s\n",str);
+}
+
+static void find_newerthan_ts_worker(void* data, struct stat* st, const char* file) {
+	conn_t* cn = ((struct newerthan_data*)data)->cn;
+	time_t  ts = ((struct newerthan_data*)data)->ts;
+
+	if(ts >= st->st_mtime)
+		return;
+	
+	if(S_ISREG(st->st_mode)) {	
+		conn_printf(cn, "FILE %s\n", file);
+	} 
+	else if(S_ISDIR(st->st_mode)) {
+		char* p = basename(file);
+		if(strcmp(".", p) != 0 && strcmp("..", p) != 0)
+			conn_printf(cn, "DIR  %s\n", file);
+	}
+	else if(S_ISLNK(st->st_mode)) {
+		conn_printf(cn, "SLNK %s\n", file);
 	}
 }
 
 static void find_newerthan_ts(conn_t* s, time_t ts, const char* path) {
-	const int curdir_l = 1024; char curdir[curdir_l];
+	char curdir[PATH_MAX];
 
-	getcwd(curdir, curdir_l);
+	struct newerthan_data	data;
+
+	data.ts = ts;
+	data.cn = s;
+
+	getcwd(curdir, PATH_MAX);
 	chdir(path);
-	find_newerthan_ts_worker(s, ts, ".");
+	traverse_directory(".", &data, find_newerthan_ts_worker, find_newerthan_ts_perror);
+
 	chdir(curdir);
 }
 
@@ -186,60 +219,31 @@ static void proto_handle_gettime(conn_t* cn) {
 	conn_printf(cn, "GETTIME %ld\n", (long int)now);
 }
 
-static time_t find_newest_timestamp_worker(conn_t* cn, const char* dir) {
-	const int buffer_l = 1024; char buffer[buffer_l];
-	struct stat st;
-	time_t mtime = 0;
-	DIR *dirp;
+static void find_newest_ts_worker(void* dataraw, struct stat* st, const char* file) {
+	struct scan_data* data = (struct scan_data*)dataraw;
 
-	if(stat(dir,&st) == 0) {
-		if(S_ISREG(st.st_mode)) {	
-			mtime = MAX(mtime,st.st_mtime);
-		}
-		else if(S_ISDIR(st.st_mode)) {
-			if(strcmp(dir,".") != 0 && strcmp(dir,"..") != 0)
-				mtime = MAX(mtime,st.st_mtime);
-
-			// scan the directory
-			struct dirent* dp;
-			getcwd(buffer, buffer_l);
-
-			dirp = opendir(dir);
-			if(dirp) {
-				assert(dirp);
-				time_t t;
-				while ((dp = readdir(dirp)) != NULL) {
-					if(strcmp(dp->d_name,".") != 0 && strcmp(dp->d_name,"..") != 0) {
-						chdir(dir);
-						t = find_newest_timestamp_worker(cn, dp->d_name);
-						chdir(buffer);
-						mtime = MAX(mtime,t);
-					}
-				}
-				closedir(dirp);
-			}
-		}
-		else {
-			// Ignore everything else
-			conn_printf(cn, "WARNING Ignored %s\n", dir);
-		}
+	if(S_ISREG(st->st_mode)) {	
+		data->ts = MAX(data->ts,st->st_mtime);
 	}
-	else {
-		return (time_t)-1;
+	else if(S_ISDIR(st->st_mode)) {
+		char* p = basename(file);
+		if(strcmp(p,".") != 0 && strcmp(p,"..") != 0)
+			data->ts = MAX(data->ts,st->st_mtime);
 	}
-
-	return mtime;
 }
 
 static void proto_handle_scan(conn_t* cn, const char* dir) {
-	const int curdir_l = 1024; char curdir[curdir_l];
-	time_t t;
+	char curdir[PATH_MAX];
+	struct scan_data data;
 
-	getcwd(curdir, curdir_l);
-	t = find_newest_timestamp_worker(cn, dir);
+	data.ts = 0;
+	data.cn = cn;
+
+	getcwd(curdir, PATH_MAX);
+	traverse_directory(dir, &data, find_newest_ts_worker, find_newerthan_ts_perror);
 	chdir(curdir);
 
-	conn_printf(cn, "SCAN %ld\n", (long int)t);
+	conn_printf(cn, "SCAN %ld\n", (long int)data.ts);
 }
 
 static mode_t str2mode(const char* line) {
