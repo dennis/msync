@@ -70,8 +70,6 @@ Requesting a file/directory
 		"MKDIR permission atime ctime mtime filename\n"
 	- or -
 		"SLNK filename\ntarget-file"
-	- or - 
-		"HLNK num filename\ntarget-file1\ntarget-file2\ntarget-file3\n" ..
 	
 Sending a file
 --------------
@@ -98,7 +96,7 @@ Creating a symlink
 	client replies:
 		"GET filename"
 
-Checking if a file exists*
+Checking if a file exists
 -------------------------
 	master sends:
 		"EXISTS filename"
@@ -108,8 +106,7 @@ Checking if a file exists*
 	-or-
 		"NO"
 
-
-Creating a hardlink* 
+Creating a hardlink*
 -------------------
 	master sends:
 		"HLNK filename targetfile" (if master determines that one of file1..file3 exists)
@@ -117,3 +114,10 @@ Creating a hardlink*
 	client replies
 		"GET filename"
 
+LINKS filename*
+----------------
+	master sends:
+		"LINKS filename" (returns returns all files that is linked with this file)
+	
+	client replies:
+		"LINKS 3 filename\nfile1\nfile2\nfile3"

@@ -259,7 +259,7 @@ test_section "Slave tests"
 		test_okfail $?
 	
 	test_title "hardlink-2"
-		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep "HLNK ./hardlink" >/dev/null
+		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep -v "HLNK ./hardlink" >/dev/null
 		test_okfail $?
 	
 	test_title "exists-1"

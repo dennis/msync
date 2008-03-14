@@ -234,31 +234,11 @@ static void find_newest_ts_worker(void* dataraw, struct stat* st, const char* fi
 	if(S_ISREG(st->st_mode)) {	
 		data->ts = MAX(data->ts,st->st_mtime);
 		if(st->st_nlink>1) {
-
-			// Find st->st_ino in hardlinks if possible
-			hlink_t* n = NULL;
-			for(n = *data->hardlinks; n; n = (hlink_t*)((node_t*)n)->next) {
-				if(n->inode == st->st_ino)
-					break;
-			}
-			if(n) {
-				conn_printf(data->cn, "WARNING Candidate - %lx %s\n", n->inode, n->filename);
-				if( n->mtime > st->st_mtime ) {
-					// Replace current entry with older one
-					n->mtime = st->st_mtime;
-					strncpy(n->filename, file, PATH_MAX);
-					conn_printf(data->cn, "WARNING ..replacing\n");
-				}
-			}
-			else {
-				conn_printf(data->cn, "WARNING Found no candidate, adding '%s'\n", file);
-				n = (hlink_t*)malloc(sizeof(hlink_t));
-				n->inode = st->st_ino;
-				n->mtime = st->st_mtime;
-				strncpy(n->filename, file, PATH_MAX);
-
-				list_add((node_t**)data->hardlinks, (node_t*)n);
-			}
+			hlink_t* n = (hlink_t*)malloc(sizeof(hlink_t));
+			n->inode = st->st_ino;
+			n->mtime = st->st_mtime;
+			strncpy(n->filename, file, PATH_MAX);
+			list_add((node_t**)data->hardlinks, (node_t*)n);
 		}
 	}
 	else if(S_ISDIR(st->st_mode)) {
@@ -393,7 +373,7 @@ static void md5bin2str(const unsigned char* md5bin, char* md5str) {
 	md5str[32] = (char)NULL;
 }
 
-static void proto_handle_get(conn_t* cn, const char* line, hlink_t* hardlinks) {
+static void proto_handle_get(conn_t* cn, const char* line) {
 	struct stat st;
 
 	// Reject filenames with just "." and ".."
@@ -405,61 +385,48 @@ static void proto_handle_get(conn_t* cn, const char* line, hlink_t* hardlinks) {
 
 	if(lstat(line,&st) == 0) {
 		if(S_ISREG(st.st_mode)) {
-			if(st.st_nlink>1) {
-				hlink_t* n = NULL;
-				for(n = hardlinks; n; n = (hlink_t*)((node_t*)n)->next) {
-					conn_printf(cn, "WARNING might be - %lx %s\n", n->inode, n->filename);
-					if(st.st_ino == n->inode) 
-						conn_printf(cn, "WARNING use the above\n");
-				}
-				conn_printf(cn, "HLNK %s\n", line);
-				conn_printf(cn, "foobar\n");
-#warning implement me!
-			}
-			else {
-				int fd;
-				md5_state_t md5_state;
-				md5_init(&md5_state);
-				const int buffer_l = 1024; char buffer[buffer_l];
-				ssize_t size;
-				char md5str[33];
-				char modestr[11];
+			int fd;
+			md5_state_t md5_state;
+			md5_init(&md5_state);
+			const int buffer_l = 1024; char buffer[buffer_l];
+			ssize_t size;
+			char md5str[33];
+			char modestr[11];
 
-				if((fd = open(line,O_NOATIME))==-1) {
-					conn_perror(cn, "WARNING open()");
-					conn_printf(cn, "WARNING Can't open file: %s\n", line);
+			if((fd = open(line,O_NOATIME))==-1) {
+				conn_perror(cn, "WARNING open()");
+				conn_printf(cn, "WARNING Can't open file: %s\n", line);
+				return;
+			}
+
+			// Calcuate MD5
+			{
+				unsigned char md5bin[16];
+				while((size = read(fd, buffer, buffer_l)))
+					md5_append(&md5_state, (unsigned char*)buffer, size);
+				md5_finish(&md5_state, (unsigned char*)md5bin);
+
+				if(lseek(fd, SEEK_SET, 0)==-1) {
+					conn_perror(cn, "ERROR lseek()");
+					conn_abort(cn);
 					return;
 				}
 
-				// Calcuate MD5
-				{
-					unsigned char md5bin[16];
-					while((size = read(fd, buffer, buffer_l)))
-						md5_append(&md5_state, (unsigned char*)buffer, size);
-					md5_finish(&md5_state, (unsigned char*)md5bin);
-
-					if(lseek(fd, SEEK_SET, 0)==-1) {
-						conn_perror(cn, "ERROR lseek()");
-						conn_abort(cn);
-						return;
-					}
-
-					md5bin2str(md5bin, md5str);
-				}
-
-				mode2str(st.st_mode, modestr);
-				conn_printf(cn, "PUT %ld %s %s %ld %ld %ld %s\n", 
-					st.st_size,
-					md5str,
-					modestr,
-					st.st_atime,
-					st.st_ctime,
-					st.st_mtime,
-					line);
-				while((size = read(fd, buffer, buffer_l))) 
-					conn_write(cn, buffer, size);
-				close(fd);
+				md5bin2str(md5bin, md5str);
 			}
+
+			mode2str(st.st_mode, modestr);
+			conn_printf(cn, "PUT %ld %s %s %ld %ld %ld %s\n", 
+				st.st_size,
+				md5str,
+				modestr,
+				st.st_atime,
+				st.st_ctime,
+				st.st_mtime,
+				line);
+			while((size = read(fd, buffer, buffer_l))) 
+				conn_write(cn, buffer, size);
+			close(fd);
 		}
 		else if(S_ISDIR(st.st_mode)) {
 			char modestr[11];
@@ -664,6 +631,39 @@ static void proto_handle_exists(conn_t* cn, const char* line) {
 	}
 }
 
+static void proto_handle_links(conn_t* cn, const char* line, hlink_t** hardlinks) {
+	struct stat st;
+
+	if(lstat(line,&st) == 0) {
+		if(S_ISREG(st.st_mode) && st.st_nlink>2) {
+			int c = 0;
+			hlink_t* n = NULL;
+
+			// Try to find which hardlinks we know of
+			for(n = *hardlinks; n; n = (hlink_t*)((node_t*)n)->next) {
+				if(n->inode == st.st_ino) 
+					c++;
+			}
+
+			if(c) {
+				conn_printf(cn, "LINKS %d %s\n", c, line);
+
+				// show them
+				for(n = *hardlinks; n; n = (hlink_t*)((node_t*)n)->next) {
+					if(n->inode == st.st_ino) {
+						conn_printf(cn, "%s\n", n->filename);
+					}
+				}
+
+				return;
+			}
+		}
+	}
+
+	conn_printf(cn, "ERROR links() failed\n");
+	conn_abort(cn);
+}
+
 static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 	if(memcmp(line, "ERROR ",6) == 0)
 		proto_handle_error(cn, line+6);
@@ -692,7 +692,7 @@ static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 			proto_handle_mkdir(cn, line+6);
 		}
 		else if(memcmp(line, "GET ",4) == 0) {
-			proto_handle_get(cn, line+4, *hardlinks);
+			proto_handle_get(cn, line+4);
 		}
 		else if(memcmp(line, "PUT ",4) == 0) {
 			proto_handle_put(cn, line+4);
@@ -702,6 +702,9 @@ static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 		}
 		else if(memcmp(line, "EXISTS ", 7) == 0) {
 			proto_handle_exists(cn, line+7);
+		}
+		else if(memcmp(line, "LINKS ", 6) == 0) {
+			proto_handle_links(cn, line+6, hardlinks);
 		}
 		else {
 			conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
