@@ -66,7 +66,7 @@ sync_dirdiff() {
 	diff $srctmp $dsttmp >/dev/null
 	test_okfail $?
 	rm -r $dst
-	rm $srctmp $dsttmp $msttmp
+	#rm $srctmp $dsttmp $msttmp
 }
 
 test_okfail() {
@@ -127,7 +127,7 @@ test_setup() {
 }
 
 test_teardown() {
-	rm -rf dir1 dir2 dir3 dir4 dir5
+	rm -rf dir1 dir2 dir3 dir4 dir5 2>/dev/null
 }
 
 ## 
@@ -253,7 +253,14 @@ test_section "Slave tests"
 		test -h testdir/symlink
 		test_okfail $?
 		rm -rf testdir
-		
+	
+	test_title "hardlink-1"
+		echo -e "HELLO msync 1\nNEWERTHAN 0 ." | $MSYNC -s dir4 | grep "HLNK ./hardlink" >/dev/null
+		test_okfail $?
+	
+	test_title "hardlink-2"
+		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep "HLNK ./hardlink" >/dev/null
+		test_okfail $?
 
 test_section "master tests"
 TESTNUM=49
@@ -282,4 +289,4 @@ test_section "status"
 	test_title "Test OK"; echo $TEST_OK_COUNT
 	test_title "Test FAIL"; echo $TEST_FAIL_COUNT
 
-test_teardown
+#test_teardown

@@ -47,6 +47,7 @@ Find files/dirs newer than ts
 		"DIR "..
 		"FILE "..
 		"SLNK "..
+		"HLNK "..
 		"END"
 
 Creating a directory
@@ -68,9 +69,10 @@ Requesting a file/directory
 	- or - 
 		"MKDIR permission atime ctime mtime filename\n"
 	- or -
-		"SLNK filename\n"
-		target-file
-
+		"SLNK filename\ntarget-file"
+	- or - 
+		"HLNK num filename\ntarget-file1\ntarget-file2\ntarget-file3\n" ..
+	
 Sending a file
 --------------
 	master sends: 
@@ -79,4 +81,39 @@ Sending a file
 
 	client replies:
 		"GET filename\n"
+
+Making a file
+-------------
+	master sends:
+		"MKDIR permission atime ctime mtime filename\n"
+		
+	client replies:
+		"MKDIR filename"
+
+Creating a symlink
+------------------
+	master sends:
+		"SLNK filename\ntargetfile"
+	
+	client replies:
+		"GET filename"
+
+Checking if a file exists*
+-------------------------
+	master sends:
+		"EXISTS filename"
+
+	client replies
+		"YES"
+	-or-
+		"NO"
+
+
+Creating a hardlink* 
+-------------------
+	master sends:
+		"HLNK filename targetfile" (if master determines that one of file1..file3 exists)
+	
+	client replies
+		"GET filename"
 
