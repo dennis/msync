@@ -261,6 +261,14 @@ test_section "Slave tests"
 	test_title "hardlink-2"
 		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep "HLNK ./hardlink" >/dev/null
 		test_okfail $?
+	
+	test_title "exists-1"
+		echo -e "HELLO msync 1\nEXISTS ./hardlink" |  $MSYNC -s dir4 | grep "YES" >/dev/null
+		test_okfail $?
+
+	test_title "exists-2"
+		echo -e "HELLO msync 1\nEXISTS ./hardlink-nogo" |  $MSYNC -s dir4 | grep "YES" >/dev/null
+		test_failok $?
 
 test_section "master tests"
 TESTNUM=49
@@ -289,4 +297,4 @@ test_section "status"
 	test_title "Test OK"; echo $TEST_OK_COUNT
 	test_title "Test FAIL"; echo $TEST_FAIL_COUNT
 
-#test_teardown
+test_teardown

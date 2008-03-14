@@ -652,6 +652,18 @@ static void proto_handle_slnk(conn_t* cn, const char* line) {
 	conn_printf(cn, "GET %s\n", line);
 }
 
+static void proto_handle_exists(conn_t* cn, const char* line) {
+	int fd = open(line, O_RDONLY);
+
+	if(fd == -1) {
+		conn_printf(cn, "NO\n");
+	}
+	else {
+		close(fd);
+		conn_printf(cn, "YES\n");
+	}
+}
+
 static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 	if(memcmp(line, "ERROR ",6) == 0)
 		proto_handle_error(cn, line+6);
@@ -687,6 +699,9 @@ static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 		}
 		else if(memcmp(line, "SLNK ", 5) == 0) {
 			proto_handle_slnk(cn, line+5);
+		}
+		else if(memcmp(line, "EXISTS ", 7) == 0) {
+			proto_handle_exists(cn, line+7);
 		}
 		else {
 			conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
