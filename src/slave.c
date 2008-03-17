@@ -635,7 +635,7 @@ static void proto_handle_links(conn_t* cn, const char* line, hlink_t** hardlinks
 	struct stat st;
 
 	if(lstat(line,&st) == 0) {
-		if(S_ISREG(st.st_mode) && st.st_nlink>2) {
+		if(S_ISREG(st.st_mode) && st.st_nlink>1) {
 			int c = 0;
 			hlink_t* n = NULL;
 
@@ -644,6 +644,7 @@ static void proto_handle_links(conn_t* cn, const char* line, hlink_t** hardlinks
 				if(n->inode == st.st_ino) 
 					c++;
 			}
+
 
 			if(c) {
 				conn_printf(cn, "LINKS %d %s\n", c, line);
@@ -658,6 +659,9 @@ static void proto_handle_links(conn_t* cn, const char* line, hlink_t** hardlinks
 				return;
 			}
 		}
+	}
+	else {
+		conn_perror(cn, "lstat()");
 	}
 
 	conn_printf(cn, "ERROR links() failed\n");
