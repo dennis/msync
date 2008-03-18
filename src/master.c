@@ -35,8 +35,8 @@ THE SOFTWARE.
 #include "conn.h"
 #include "list.h"
 
-#define DMSG(x) { x }while(0)
-/*#define DMSG(x)*/
+/*#define DMSG(x) { x }while(0)*/
+#define DMSG(x)
 #define MAX(x,y) (x>y ? x :y)
 #define MIN(x,y) (x<y ? x :y)
 
@@ -98,7 +98,7 @@ static int readline(conn_t* cn, char* buffer, size_t size) {
 static int expect_keyword(conn_t* cn, const char* keyword) {
 	const int buffer_l = 256; char buffer[buffer_l];
 
-	if(readline(cn, buffer, buffer_l)==0)
+	if(readline(cn, buffer, buffer_l)==0) 
 		return 0;
 
 	if(memcmp(keyword, buffer, strlen(keyword)) == 0) {
@@ -149,59 +149,112 @@ static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
 
 static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 	const int buffer_l = 1024; char buffer[buffer_l];
-	conn_printf(src, "GET %s\n", entry+5);
-	DMSG(printf("%lx > GET %s\n", (long int)src, entry+5););
-	readline(src, buffer, buffer_l);
+	const int buffer2_l = 1024; char buffer2[buffer2_l];
 
-	if(memcmp("PUT ", buffer, 4) == 0 ) {
-		size_t size = 0;
+	if(memcmp("HLNK ", entry, 5)==0) {
+		char* ptr;
+		// We need to figure out if dst got one of the 
+		conn_printf(src, "LINKS %s\n", entry+5);
+		DMSG(printf("%lx > LINKS %s\n", (long int)src, entry+5););
+		if(readline(src, buffer, buffer_l))  {
+			int count = 0;
 
-		{
-			char sizestr[10];
-			char* p;
-			p = buffer+4;
-			int i = 0;
-			while(*p && *p != ' ' && i < 9)
-				sizestr[i++] = *(p++);
-			sizestr[i] = (char)NULL;
-			size = atol(sizestr);
-		}
+			ptr = buffer+6; // "LINKS "
+			while(*ptr && *ptr != ' ')	// find space after number
+				ptr++;
+			*ptr = (char)NULL;
+			count = atoi(buffer+6);
 
-		int bytes_left = size;
-		int r;
-		conn_printf(dst, "%s\n", buffer);
-		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-		while(!src->abort && bytes_left) {
-			if(src->rbuf_len == 0)
-				(void)conn_read(src);
-			r = MIN(bytes_left, src->rbuf_len);
+			// Use EXISTS for each file - if we get YES back, use
+			// it to create the hardlink. If nothing exists, just
+			// act as this is a "GET filename" instead
+			int created = 0;
+			ptr = NULL; 
+			while(count && readline(src, buffer, buffer_l)) {
+				if(!created) {
+					conn_printf(dst, "EXISTS %s\n", buffer);
+					DMSG(printf("%lx > EXISTS %s\n", (long int)dst, buffer););
+					if(readline(dst, buffer2, buffer2_l)) {
+						if(memcmp("YES", buffer2, 4) == 0 && strcmp(entry+5, buffer) != 0) {
+							ptr = buffer;	// Store for later
+							conn_printf(dst, "HLNK %s\n%s\n", entry+5, buffer);
+							DMSG(printf("%lx > HLNK %s\n%s\n", (long int)dst, entry+5, buffer););
+							if(expect_keyword(dst, "GET"))
+								created = 1;
+						}
+					}
+				}
 
-			if(r) {
-				write(dst->outfd, src->rbuf, r);
-				conn_shift(src,r);
-				bytes_left -= r;
+				if(count)
+					count--;
 			}
 
-			assert(bytes_left >= 0);
+			if(!created) {
+				// Act as it is a normal file
+				sprintf(buffer, "FILE %s", entry+5);
+				proto_sync(src, dst, buffer);
+			}
 		}
-		expect_keyword(dst, "GET");
-	}
-	else if(memcmp("MKDIR ", buffer, 6) == 0 ) {
-		conn_printf(dst, "%s\n", buffer);
-		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-		expect_keyword(dst, "MKDIR");
-	}
-	else if(memcmp("SLNK ", buffer, 5) == 0 ) {
-		conn_printf(dst, "%s\n", buffer);
-		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-		readline(src, buffer, buffer_l);
-		conn_printf(dst, "%s\n", buffer);
-		DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-		expect_keyword(dst, "GET");
+
+		return;
 	}
 	else {
-		puts(buffer);
-		assert(0);
+		conn_printf(src, "GET %s\n", entry+5);
+		DMSG(printf("%lx > GET %s\n", (long int)src, entry+5););
+		if(readline(src, buffer, buffer_l)==0) 
+			return;
+
+		if(memcmp("PUT ", buffer, 4) == 0 ) {
+			size_t size = 0;
+
+			{
+				char sizestr[10];
+				char* p;
+				p = buffer+4;
+				int i = 0;
+				while(*p && *p != ' ' && i < 9)
+					sizestr[i++] = *(p++);
+				sizestr[i] = (char)NULL;
+				size = atol(sizestr);
+			}
+
+			int bytes_left = size;
+			int r;
+			conn_printf(dst, "%s\n", buffer);
+			DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+			while(!src->abort && bytes_left) {
+				if(src->rbuf_len == 0)
+					(void)conn_read(src);
+				r = MIN(bytes_left, src->rbuf_len);
+
+				if(r) {
+					write(dst->outfd, src->rbuf, r);
+					conn_shift(src,r);
+					bytes_left -= r;
+				}
+
+				assert(bytes_left >= 0);
+			}
+			expect_keyword(dst, "GET");
+		}
+		else if(memcmp("MKDIR ", buffer, 6) == 0 ) {
+			conn_printf(dst, "%s\n", buffer);
+			DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+			expect_keyword(dst, "MKDIR");
+		}
+		else if(memcmp("SLNK ", buffer, 5) == 0 ) {
+			conn_printf(dst, "%s\n", buffer);
+			DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+			if(readline(src, buffer, buffer_l)) {
+				conn_printf(dst, "%s\n", buffer);
+				DMSG(printf("%lx > %s\n", (long int)dst, buffer););
+				expect_keyword(dst, "GET");
+			}
+		}
+		else {
+			puts(buffer);
+			assert(0);
+		}
 	}
 }
 
@@ -251,19 +304,12 @@ int master(context_t* ctx) {
 		dprintf(3, "Internal error: %d (handshake failed)\n", __LINE__);
 	}
 	else {
-		// Ask for time on both sides. Calculate difference
-		/*
-		long src_tdiff = proto_gettime(&src_conn);
-		long dst_tdiff = proto_gettime(&dst_conn);
-		*/
-
 		if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
 			tdiff = TIME_MARGIN_SEC;
 
-			//printf("tdiff: %ld\n", tdiff);
-
 			// Find the newest file at dst
 			dst_newest_ts = proto_scan(&dst_conn) - tdiff;
+			(void)proto_scan(&src_conn);	// required in case we need to deal with hardlinks
 
 			if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
 				fileentry_t* transferlist = NULL;
@@ -271,10 +317,9 @@ int master(context_t* ctx) {
 				// Get files from source, newer than dst_newest_ts
 				proto_newerthan(&src_conn, dst_newest_ts, &transferlist );
 
-				// cleanup
 				fileentry_t* p;
 				fileentry_t* n = NULL;
-				for(p = transferlist; p; p = n) { 
+				for(p = transferlist; p && conn_alive(&src_conn) && conn_alive(&dst_conn); p = n) { 
 					n = (fileentry_t*)((node_t*)p)->next;
 					proto_sync(&src_conn, &dst_conn, p->entry);
 					free(p->entry);

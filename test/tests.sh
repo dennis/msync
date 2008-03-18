@@ -178,13 +178,13 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "newerthan-1"
-		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199142000 ." | $MSYNC -s dir1 | wc -l`
-		expr $C = 2 >/dev/null
+		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199142000 ." | $MSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
+		expr $C = 0 >/dev/null
 		test_okfail $?
 
 	test_title "newerthan-2"
-		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199141999 ." | $MSYNC -s dir1 | wc -l`
-		expr $C = 6 >/dev/null
+		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199141999 ." | $MSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
+		expr $C = 4 >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-1"
@@ -262,6 +262,20 @@ test_section "Slave tests"
 		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep -v "HLNK ./hardlink" >/dev/null
 		test_okfail $?
 	
+	test_title "hardlink-3"
+		echo -e "HELLO msync 1\nHLNK ./hardlink\n./hardlink\n" | $MSYNC -s . |grep "ERROR Cannot make a link to itself!" >/dev/null
+		test_okfail $?
+
+	test_title "hardlink-4"
+		mkdir testdir
+		touch testdir/file
+		echo -e "HELLO msync 1\nHLNK ./hardlink\n./file\n" | $MSYNC -s testdir/ |grep "ERROR Cannot make a link to itself!" >/dev/null
+		R1=`stat --printf="%i" testdir/file`
+		R2=`stat --printf="%i" testdir/hardlink`
+		expr $R1 = $R2 >/dev/null
+		test_okfail $?
+		rm -rf testdir
+	
 	test_title "exists-1"
 		echo -e "HELLO msync 1\nEXISTS ./hardlink" |  $MSYNC -s dir4 | grep "YES" >/dev/null
 		test_okfail $?
@@ -285,12 +299,7 @@ TESTNUM=49
 		sync_dirdiff "dir4" "dir4-copy"
 
 	test_title "sync-5 (symlinks)"
-		mkdir dir5-copy
-		$MSYNC dir5 dir5-copy >/dev/null
-		C=`ls -l dir5-copy/ | wc -l`
-		expr $C = 1 >/dev/null
-		test_okfail $?
-		rm -rf dir5-copy
+		sync_dirdiff "dir5" "dir5-copy"
 
 TESTNUM=95
 test_section "status"

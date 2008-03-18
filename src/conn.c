@@ -66,7 +66,7 @@ ssize_t conn_read(conn_t* cn) {
 
 	if(read_len == 0)
 		cn->abort = 1;
-
+	
 	return read_len;
 }
 

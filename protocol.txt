@@ -109,7 +109,7 @@ Checking if a file exists
 Creating a hardlink*
 -------------------
 	master sends:
-		"HLNK filename targetfile" (if master determines that one of file1..file3 exists)
+		"HLNK filename\ntargetfile" (if master determines that one of file1..file3 exists)
 	
 	client replies
 		"GET filename"

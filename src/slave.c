@@ -619,6 +619,42 @@ static void proto_handle_slnk(conn_t* cn, const char* line) {
 	conn_printf(cn, "GET %s\n", line);
 }
 
+static ino_t get_inode(const char* file) {
+	struct stat st;
+
+	if(lstat(file,&st) == 0)
+		return st.st_ino;
+	else
+		return -1;
+}
+
+static void proto_handle_hlnk(conn_t* cn, const char* line) {
+	// read next line to get target
+	const int target_l = 1024; char target[target_l];
+	if(!conn_readline(cn, target, target_l)) {
+		conn_perror(cn, "ERROR No data\n");
+		conn_abort(cn);
+		return;
+	}
+	
+	if(strcmp(target, line)==0) {
+		conn_printf(cn, "ERROR Cannot make a link to itself!\n");
+		conn_abort(cn);
+		return;
+	}
+
+	// Check if inode is the same, if so, dont bother
+	if(get_inode(target) != get_inode(line)) {
+		if(link(target, line)==-1) {
+			conn_perror(cn, "ERROR link()");
+			conn_abort(cn);
+			return;
+		}
+	}
+
+	conn_printf(cn, "GET %s\n", line);
+}
+
 static void proto_handle_exists(conn_t* cn, const char* line) {
 	int fd = open(line, O_RDONLY);
 
@@ -704,6 +740,9 @@ static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 		else if(memcmp(line, "SLNK ", 5) == 0) {
 			proto_handle_slnk(cn, line+5);
 		}
+		else if(memcmp(line, "HLNK ", 5) == 0) {
+			proto_handle_hlnk(cn, line+5);
+		}
 		else if(memcmp(line, "EXISTS ", 7) == 0) {
 			proto_handle_exists(cn, line+7);
 		}
@@ -711,7 +750,7 @@ static void proto_delegator(conn_t* cn, const char* line, hlink_t **hardlinks) {
 			proto_handle_links(cn, line+6, hardlinks);
 		}
 		else {
-			conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
+			conn_printf(cn, "ERROR Protocol violation (%d): %s\n", __LINE__, line);
 			conn_abort(cn);
 		}
 	}
