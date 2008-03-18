@@ -89,19 +89,6 @@ ssize_t conn_readline(conn_t* cn, char* line, size_t maxsize) {
 		}
 
 	}
-	/*
-	while((read_len = conn_read(cn))) {
-		// Scan for \n or \0
-		for(i=0; (i < (int)cn->rbuf_len) && !cn->abort && i < (int)maxsize-1; i++) {
-			if(cn->rbuf[i] == (char)NULL || cn->rbuf[i] == '\n') {
-				cn->rbuf[i] = (char)NULL;
-				strncpy(line, cn->rbuf, i+1);
-				conn_shift(cn, i+1);
-				return i;
-			}
-		}
-	}
-	*/
 
 	return 0;
 }
