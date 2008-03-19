@@ -42,10 +42,7 @@ static void usage() {
 		"\n"
 		"  msync is a simplistic tool that copy files based on the timestamp\n"
 		"\n"
-		"  -a  --adjust <seconds>  : Allow inaccurate timestamps of <seconds>.\n"
-		"  -d  --dry-run           : Just display which files needs to be copied.\n"
 		"  -h  --help              : This text.\n"
-		"  -q  --quiet             : Minimal output.\n"
 		"  -s  --slave             : Start in slave mode.\n"
 		"  -v  --version           : Display version and exit.\n"
 		"\n");
@@ -92,9 +89,7 @@ static int slave_mode(int argc, char* argv[]) {
 static int master_mode(int argc, char* argv[]) {
 	static struct option long_options[] = {
 		{"adjust",	1,	NULL,	'a'},
-		{"dry-run",	0,	NULL,	'd'},
 		{"help",	0,	NULL,	'h'},
-		{"quiet",	0,	NULL,	'q'},
 		{"version",	0,	NULL,	'v'},
 		{0, 0, 0, 0}
 	};
@@ -109,24 +104,10 @@ static int master_mode(int argc, char* argv[]) {
 
 	while((c = getopt_long(argc, argv, "a:dhq:v", long_options, NULL)) != -1) {
 		switch(c) {
-			case 'a': {
-				ctx.adjust = atoi(optarg);
-				if(ctx.adjust < 0 || !strdigit(optarg)) {
-					fprintf(stderr, "%s: adjust value must be a positive integer\n", argv[0]);
-					return 1;
-				}
-				}
-				break;
-			case 'd':
-				ctx.dry_run = 1;
-				break;
 			case '?':
 			case 'h':
 				usage();
 				return 0;
-				break;
-			case 'q':
-				ctx.quiet = 1;
 				break;
 			case 'v':
 				printf("msync version %s\n", VERSION);

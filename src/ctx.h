@@ -31,10 +31,7 @@ typedef struct {
 	char* msync;
 	char* src;
 	char* dst;
-	char  quiet;
-	char  dry_run;
 	time_t time;
-	int   adjust;
 } context_t;
 
 void ctx_init(context_t*);
