@@ -37,26 +37,17 @@ THE SOFTWARE.
 
 static void usage() {
 	printf(
-		" Usage: msync [options] <source> <destination> - to start in master mode\n"
-		" Usage: msync --slave [directory]              - to start in slave mode\n"
+		" Usage: msync [options] [src-dir] [dst-dir] - to start in master mode\n"
+		" Usage: msync --slave [directory]           - to start in slave mode\n"
 		"\n"
 		"  msync is a simplistic tool that copy files based on the timestamp\n"
 		"\n"
-		"  -h  --help              : This text.\n"
-		"  -s  --slave             : Start in slave mode.\n"
-		"  -v  --version           : Display version and exit.\n"
+		"  -h  --help                  : This text.\n"
+		"  -s  --slave                 : Start in slave mode.\n"
+		"  -v  --version               : Display version and exit.\n"
+		"  -S  --source 'command'      :\n"
+		"  -D  --destination 'command' :\n"
 		"\n");
-}
-
-static char strdigit(const char* s) {
-	int l = strlen(s);
-	while(l) {
-		if(!isdigit(s[l-1]))
-			return 0;
-		l--;
-	}
-
-	return 1;
 }
 
 static int is_slave(const char* param) {
@@ -88,9 +79,10 @@ static int slave_mode(int argc, char* argv[]) {
 
 static int master_mode(int argc, char* argv[]) {
 	static struct option long_options[] = {
-		{"adjust",	1,	NULL,	'a'},
 		{"help",	0,	NULL,	'h'},
 		{"version",	0,	NULL,	'v'},
+		{"source",  1,  NULL,   'S'},
+		{"destination",  1,  NULL,   'D'},
 		{0, 0, 0, 0}
 	};
 
@@ -102,7 +94,7 @@ static int master_mode(int argc, char* argv[]) {
 	ctx_init(&ctx);
 	ctx.msync = argv[0];
 
-	while((c = getopt_long(argc, argv, "a:dhq:v", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "hvS:D:", long_options, NULL)) != -1) {
 		switch(c) {
 			case '?':
 			case 'h':
@@ -113,14 +105,31 @@ static int master_mode(int argc, char* argv[]) {
 				printf("msync version %s\n", VERSION);
 				return 0;
 				break;
+			case 'S':
+				strncpy(ctx.srccmd, optarg, CTXCMD_LEN);
+				break;
+			case 'D':
+				strncpy(ctx.dstcmd, optarg, CTXCMD_LEN);
+				break;
 		}
 	}
 
-	// Source / Target
+	// Source / Target directories given
     if(argc-optind == 2) {
-		ctx.src = argv[optind+0];
-		ctx.dst = argv[optind+1];
+		// Only two direectories supplied. Lets change these to: "msync --slave directory"
+		snprintf(ctx.srccmd, CTXCMD_LEN, "%s --slave %s", argv[0], argv[optind+0]);
+		snprintf(ctx.dstcmd, CTXCMD_LEN, "%s --slave %s", argv[0], argv[optind+1]);
     }
+
+	// No arguments
+	else if(argc-optind == 0) {
+		if(!ctx.srccmd[0] || !ctx.dstcmd[0]) {
+			usage();
+			return 1;
+		}
+	}
+
+	// A single or too many arguments
 	else {
 		usage();
 		return 1;

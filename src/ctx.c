@@ -26,8 +26,8 @@ THE SOFTWARE.
 
 #include "ctx.h"
 void ctx_init(context_t* ctx) {
-	ctx->src   = NULL;
-	ctx->dst   = NULL;
+	ctx->srccmd[0]  = (char)NULL;
+	ctx->dstcmd[0]  = (char)NULL;
 	ctx->time   = 0;
 }
 
@@ -46,8 +46,8 @@ void ctx_dump(context_t* ctx) {
 		"  source            : %s\n"
 		"  destination       : %s\n"
 		"  time              : %d: %s",
-		ctx->src,
-		ctx->dst,
+		ctx->srccmd,
+		ctx->dstcmd,
 		(int)ctx->time,
 		datetime
 		);

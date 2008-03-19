@@ -54,19 +54,28 @@ test_title() {
 sync_dirdiff() {
 	local src="$1"
 	local dst="$2"
-	local srctmp="/tmp/msync-${TESTNUM}-src.txt"
-	local dsttmp="/tmp/msync-${TESTNUM}-dst.txt"
 	local msttmp="/tmp/msync-${TESTNUM}-mst.txt"
-	local r=0
 
 	mkdir $dst
 	$MSYNC $src $dst >$msttmp
-	(cd $src && ls -lR . >$srctmp)
-	(cd $dst && ls -lR . >$dsttmp)
-	diff $srctmp $dsttmp >/dev/null
-	test_okfail $?
+
+	dirdiff $src $dst
+
 	rm -r $dst
-	#rm $srctmp $dsttmp $msttmp
+	rm $msttmp
+}
+
+dirdiff() {
+	local a="$1"
+	local b="$2"
+	local atmp="/tmp/msync-${TESTNUM}-src.txt"
+	local btmp="/tmp/msync-${TESTNUM}-dst.txt"
+
+	(cd $a && ls -lR . >$atmp)
+	(cd $b && ls -lR . >$btmp)
+	diff $a $b >/dev/null
+	test_okfail $?
+	rm $atmp $btmp
 }
 
 test_okfail() {
@@ -300,6 +309,12 @@ TESTNUM=49
 
 	test_title "sync-5 (symlinks)"
 		sync_dirdiff "dir5" "dir5-copy"
+
+	test_title "sync-6 (using -S/-D)"
+		mkdir dir5-copy
+		$MSYNC -S "$MSYNC -s dir5" -D "$MSYNC -s dir5-copy" >/dev/null
+		dirdiff dir5 dir5-copy
+		rm -r dir5-copy
 
 TESTNUM=95
 test_section "status"

@@ -27,10 +27,12 @@ THE SOFTWARE.
 #include <stddef.h>
 #include <time.h>
 
+#define CTXCMD_LEN 1024
+
 typedef struct {
 	char* msync;
-	char* src;
-	char* dst;
+	char srccmd[CTXCMD_LEN];
+	char dstcmd[CTXCMD_LEN];
 	time_t time;
 } context_t;
 

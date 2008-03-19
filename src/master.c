@@ -45,7 +45,83 @@ typedef struct {
 	char *entry;
 } fileentry_t;
 
-static pid_t start_slave(const context_t* ctx, const char* dir, int rpfd[2], int wpfd[2]) {
+// parses a line into "arguments", in a similar fashion that your shell does
+// eg: ssh -i 'foo\'' "bar   a" te\ st
+// is parsed into:
+// argv[0] = ssh
+// argv[1] = -i
+// argv[2] = foo'
+// argv[3] = bar   a
+// argv[4] = te st
+// argv[5] = NULL
+static void parse_line_to_args(const char* line, char* buf, int max, char* argv[512]) {
+	char* s	= (char*)line;
+	char* d	= buf;
+	char* a = NULL;
+	int argc = -1;
+
+	char end_delim = (char)NULL;
+	int escaped = 0;
+
+	*d = (char)NULL;
+
+	do {
+		assert(argc < 512);
+		if(d-buf >= max)
+			break;
+
+		if(end_delim) {
+			// Are we at end-of-argument
+			if(!escaped && (*s == end_delim || *s == (char)NULL)) {
+				end_delim = (char)NULL;
+				*d = (char)NULL;
+				d++;
+				argv[++argc] = a;
+			}
+			else {
+				if(!escaped && *s == '\\') {
+					escaped = 1;
+				}
+				else {
+					*d = *s;
+					d++;
+					escaped = 0;
+				}
+			}
+		}
+		else {
+			if(*s == '"' || *s == '\'' ) {
+				a = d;
+				end_delim = *s;
+			}
+			else if(*s != ' ') {
+				a = d;
+				end_delim = ' '; 
+				*d = *s;
+				d++;
+			}
+		}
+		if(*s)
+			s++;
+	}while(*s);
+	if(end_delim) {
+		*d = (char)NULL;
+		argv[++argc] = a;
+	}
+
+	argv[++argc] = NULL;
+
+	/*
+	printf("input: %s\n", line);
+
+	int i;
+	for(i=0; i< argc; i++) {
+		printf("%d: '%s'\n", i, argv[i]);
+	}
+	*/
+}
+
+static pid_t start_slave(const context_t* ctx, const char* cmd, int rpfd[2], int wpfd[2]) {
 	pid_t pid;
 
 	switch( pid = fork() ) {
@@ -55,15 +131,20 @@ static pid_t start_slave(const context_t* ctx, const char* dir, int rpfd[2], int
 			break;
 
 		case 0:
-			close(rpfd[0]); 
-			close(wpfd[1]); 
-			// Redirect STDOUT and STDERR
-			dup2(rpfd[1],1);
-			dup2(wpfd[0],0);
 			{
-			char* msync_cmd[] = {"msync", "--slave", (char*)dir, (char*)NULL };
-			if(execve(ctx->msync, msync_cmd, environ)==-1)
-				perror("execve");
+				char* args[512];
+				char buf[1024];
+
+				parse_line_to_args(cmd, buf, 1024, args);
+
+				close(rpfd[0]); 
+				close(wpfd[1]); 
+				// Redirect STDOUT and STDERR
+				dup2(rpfd[1],1);
+				dup2(wpfd[0],0);
+
+				if(execve(ctx->msync, args, environ)==-1)
+					perror("execve");
 			}
 			exit(EXIT_FAILURE);
 			break;
@@ -258,7 +339,7 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 	}
 }
 
-static pid_t start(context_t* ctx, conn_t* cn, const char* dir) {
+static pid_t start(context_t* ctx, conn_t* cn, const char* cmd) {
 	int rpfd[2]; 
 	int wpfd[2];
 
@@ -268,7 +349,7 @@ static pid_t start(context_t* ctx, conn_t* cn, const char* dir) {
 	cn->infd = rpfd[0];
 	cn->outfd = wpfd[1];
 
-	pid_t pid = start_slave(ctx, dir, rpfd, wpfd); 
+	pid_t pid = start_slave(ctx, cmd, rpfd, wpfd); 
 	
 	return pid;
 }
@@ -296,8 +377,8 @@ int master(context_t* ctx) {
 	conn_t dst_conn; 
 	conn_init(&dst_conn);
 
-	src_pid = start(ctx, &src_conn, ctx->src);
-	dst_pid = start(ctx, &dst_conn, ctx->dst);
+	src_pid = start(ctx, &src_conn, ctx->srccmd);
+	dst_pid = start(ctx, &dst_conn, ctx->dstcmd);
 
 	// Perform handshake
 	if(!proto_handshake(&src_conn) || !proto_handshake(&dst_conn)) {
