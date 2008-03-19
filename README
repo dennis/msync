@@ -1,0 +1,6 @@
+WARNING:
+
+	msync is built for er specific purpose. Don't use it unless you know the
+	limitations of it (e.g. it ONLY uses timestamps to determine which file
+	needs to be transferred, which can easily overlook new hardlinks to old
+	files - as the new hardlinks will have the timestamp of the old file)
