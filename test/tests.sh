@@ -182,7 +182,7 @@ test_section "Slave tests"
 		echo -e "HELLO msync 1\nGETTIME" | $MSYNC -s dir1 | grep "GETTIME" >/dev/null 
 		test_okfail $?
 
-	test_title "filets"
+	test_title "scan"
 		echo -e "HELLO msync 1\nSCAN ." | $MSYNC -s dir1 | grep "SCAN 1199142000" >/dev/null 
 		test_okfail $?
 
