@@ -26,6 +26,8 @@ TEST_OK_COUNT=0
 TEST_FAIL_COUNT=0
 
 MSYNC=../src/msync
+UNAME=`uname`
+R=0 # return
 
 test_section() {
 	local title="$1" # IN
@@ -76,6 +78,51 @@ dirdiff() {
 	diff $a $b >/dev/null
 	test_okfail $?
 	rm $atmp $btmp
+}
+
+mtime() {
+	local file="$1"
+
+	R=0
+
+	case "$UNAME" in
+		FreeBSD)
+			R=`stat -r $file | cut -d " " -f10`
+			;;
+		*)
+			R=`stat --printf "%Y" $file`
+			;;
+	esac
+}
+
+filemode() {
+	local file="$1"
+
+	R="??????????"
+
+	case "$UNAME" in
+		FreeBSD)
+			R=`stat $file |cut  -d " " -f 3`
+			;;
+		*)
+			R=`stat --printf "%A" $file`
+			;;
+	esac
+}
+
+inode() {
+	local file="$1"
+
+	R=0
+
+	case "$UNAME" in
+		FreeBSD)
+			R=`stat -r $file | cut -d " " -f2`
+			;;
+		*)
+			R=`stat --printf "%i" $file`
+			;;
+	esac
 }
 
 test_okfail() {
@@ -201,7 +248,8 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "mkdir-2"
-		expr `stat --printf "%Y" dir1/new-dir` = 1199141999 >/dev/null
+		mtime "dir1/new-dir"
+		expr $R = 1199141999 >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-3"
@@ -209,7 +257,8 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "mkdir-4"
-		expr `stat --printf "%A" dir1/new-dir` = 'drwxr-xr-x' >/dev/null
+		filemode "dir1/new-dir"
+		expr "x$R" = 'xdrwxr-xr-x' >/dev/null
 		test_okfail $?
 
 	rmdir dir1/new-dir
@@ -228,11 +277,13 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "put-2"
-		expr `stat --printf "%A" dir1/newfile` = '-r--r--r--' >/dev/null
+		filemode "dir1/newfile"
+		expr "x$R" = 'x-r--r--r--' >/dev/null
 		test_okfail $?
 
 	test_title "put-3"
-		expr `stat --printf "%Y" dir1/newfile` = 1199141999 >/dev/null
+		mtime "dir1/newfile"
+		expr $R = 1199141999 >/dev/null
 		test_okfail $?
 
 	rm -f dir1/newfile
@@ -279,8 +330,8 @@ test_section "Slave tests"
 		mkdir testdir
 		touch testdir/file
 		echo -e "HELLO msync 1\nHLNK ./hardlink\n./file\n" | $MSYNC -s testdir/ |grep "ERROR Cannot make a link to itself!" >/dev/null
-		R1=`stat --printf="%i" testdir/file`
-		R2=`stat --printf="%i" testdir/hardlink`
+		inode "testdir/file"; R1=$R
+		inode "testdir/hardlink"; R2=$R
 		expr $R1 = $R2 >/dev/null
 		test_okfail $?
 		rm -rf testdir
