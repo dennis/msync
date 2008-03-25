@@ -35,7 +35,7 @@ THE SOFTWARE.
 #include "conn.h"
 #include "list.h"
 
-extern char **envicon;	// FIXME To support FreeBSD
+extern char **environ;	// FIXME To support FreeBSD
 
 /*#define DMSG(x) { x }while(0)*/
 #define DMSG(x)
