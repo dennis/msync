@@ -100,11 +100,11 @@ ssize_t conn_write(conn_t* cn, const char* data, size_t size) {
 }
 
 ssize_t conn_printf(conn_t* cn, const char* format, ...) {
-	char buffer[512];
+	const int buffer_l = 512; char buffer[buffer_l];
 	va_list vl;
 	va_start(vl,format);
-	int s = vsnprintf(buffer, 512, format, vl);
-	assert(s<512); // Nothing truncated
+	int s = vsnprintf(buffer, buffer_l, format, vl);
+	assert(s<buffer_l); // Nothing truncated
 	return conn_write(cn,buffer,s);
 }
 
