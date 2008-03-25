@@ -505,7 +505,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 
 			mode2str(st.st_mode, modestr);
 			conn_printf(cn, "PUT %ld %s %s %ld %ld %ld %s\n", 
-				st.st_size,
+				(long int)st.st_size,
 				md5str,
 				modestr,
 				st.st_atime,
