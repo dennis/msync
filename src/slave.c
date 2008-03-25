@@ -45,6 +45,10 @@ THE SOFTWARE.
 #include "conn.h"
 #include "list.h"
 
+#ifndef PATH_MAX
+# define PATH_MAX 1024
+#endif
+
 #define MAX(x,y) (x>y ? x : y)
 #define MIN(x,y) (x<y ? x : y)
 
@@ -69,6 +73,74 @@ struct scan_data {
 typedef void (*handle_entry_t)(void*, struct stat*, const char* file);
 typedef void (*handle_perror_t)(void*, const char* str);
 
+// My own implementation of dirname(), since _GNU_SOURCE only got basename()
+static char* my_dirname(const char* src) {
+	static char result[PATH_MAX];
+
+	if(strcmp(src,".")==0) {
+		strcpy(result, ".");
+	}
+	else if(strcmp(src,"..")==0) {
+		strcpy(result, ".");
+	}
+	else if(strcmp(src,"/")==0) {
+		strcpy(result, "/");
+	}
+	else {
+		strcpy(result, src);
+		int l = strlen(result);
+
+		// strip tailing / if any
+		int i;
+		for(i=l-1; i>=0 && result[i] == '/'; i--)  
+			result[i] = (char)NULL;
+			
+		// strip until next / (reverse) - this will remove the basename()
+		for(; i>=0 && result[i] != '/'; i--)
+			result[i] = (char)NULL;
+
+		if(result[0] == (char)NULL)
+			strcpy(result, ".");
+	}
+
+	return result;
+}
+
+// Even if we got the _GNU_SOURCE, i don't belive there is any way of telling
+// if its the gnu or the POSIX one
+static char* my_basename(const char* src) {
+	static char result[PATH_MAX];
+
+	if(strcmp(src,".")==0) {
+		strcpy(result, ".");
+	}
+	else if(strcmp(src,"..")==0) {
+		strcpy(result, "..");
+	}
+	else if(strcmp(src,"/")==0) {
+		strcpy(result, "/");
+	}
+	else {
+		strcpy(result, src);
+
+		int l = strlen(result);
+
+		// strip tailing slashes, if any
+		int i = l - 1;
+		for(; i>=0 && result[i] == '/'; i--)  
+			result[i] = (char)NULL;
+
+		while(result[i] != '/' && i > 0) 
+			i--;
+
+		if( result[i] == '/' )
+			strcpy(result, result+i+1);
+	}
+
+	return result;
+}
+
+
 static void proto_handle_error(conn_t* cn, const char* line) {
 	fprintf(stderr, "ERROR %s\n", line);
 	conn_abort(cn);
@@ -82,44 +154,49 @@ static void proto_handle_warning(conn_t* cn, const char* line) {
 static void traverse_directory(const char* dir, void* data, 
 	handle_entry_t handle_entry, handle_perror_t handle_perror) {
 
-	const int buffer_l = PATH_MAX; char buffer[PATH_MAX];
+	const int buffer_l = PATH_MAX; char buffer[buffer_l];
 	struct stat st;
 	DIR *dirp;
 	char* p;
 
 	// We're chdir() into the directory of "dir", so we need "basename" of dir, to stats on
-	p = basename(dir);
-
+	p = my_basename(dir);
 	if(lstat(p,&st) == 0) {
 		handle_entry(data, &st, dir);
 		if(S_ISDIR(st.st_mode)) {
+			const int oldcwd_l = 1024; char oldcwd[oldcwd_l];
 			struct dirent* dp;
-			getcwd(buffer, buffer_l);
+			getcwd(oldcwd, oldcwd_l);
 
-			dirp = opendir(p);
-			if(dirp) {
-				while ((dp = readdir(dirp)) != NULL) {
-					if(strcmp(dp->d_name,".") != 0 && strcmp(dp->d_name,"..") != 0) {
-						const int oldcwd_l = 1024; char oldcwd[oldcwd_l];
-						getcwd(oldcwd, oldcwd_l);
+			if(chdir(p) != -1) {
+				dirp = opendir(".");
 
-						strcpy(buffer,dir);
-						strcat(buffer, "/");
-						strcat(buffer, dp->d_name);
-						chdir(p);
-						traverse_directory(buffer, data, handle_entry, handle_perror);
-						chdir(oldcwd);
+				if(dirp) {
+					while ((dp = readdir(dirp)) != NULL) {
+						if(strcmp(dp->d_name,".") != 0 && strcmp(dp->d_name,"..") != 0) {
+							strcpy(buffer,dir);
+							strcat(buffer, "/");
+							strcat(buffer, dp->d_name);
+							traverse_directory(buffer, data, handle_entry, handle_perror);
+						}
 					}
+					closedir(dirp);
 				}
-				closedir(dirp);
+				else {
+					if(handle_perror) handle_perror(data, "opendir()");
+				}
+				if(chdir(oldcwd)==-1) {
+					if(handle_perror) handle_perror(data, "chdir-1");
+				}
 			}
 			else {
-				if(handle_perror) handle_perror(data, "WARNING opendir()");
+				
+				if(handle_perror) handle_perror(data, "chdir-2");
 			}
 		}
 	}
 	else {
-		if(handle_perror) handle_perror(data, "WARNING stat()");
+		if(handle_perror) handle_perror(data, "stat()");
 	}
 }
 
@@ -142,7 +219,7 @@ static void find_newerthan_ts_worker(void* data, struct stat* st, const char* fi
 			conn_printf(cn, "FILE %s\n", file);
 	} 
 	else if(S_ISDIR(st->st_mode)) {
-		char* p = basename(file);
+		char* p = my_basename(file);
 		if(strcmp(".", p) != 0 && strcmp("..", p) != 0)
 			conn_printf(cn, "DIR  %s\n", file);
 	}
@@ -242,7 +319,7 @@ static void find_newest_ts_worker(void* dataraw, struct stat* st, const char* fi
 		}
 	}
 	else if(S_ISDIR(st->st_mode)) {
-		char* p = basename(file);
+		char* p = my_basename(file);
 		if(strcmp(p,".") != 0 && strcmp(p,"..") != 0)
 			data->ts = MAX(data->ts,st->st_mtime);
 	}
@@ -557,39 +634,6 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 	}
 }
 
-// My own implementation of dirname(), since _GNU_SOURCE only got basename()
-static char* dirname(const char* src) {
-	static char result[PATH_MAX];
-
-	if(strcmp(src,".")==0) {
-		strcpy(result, ".");
-	}
-	else if(strcmp(src,"..")==0) {
-		strcpy(result, ".");
-	}
-	else if(strcmp(src,"/")==0) {
-		strcpy(result, "/");
-	}
-	else {
-		strcpy(result, src);
-		int l = strlen(result);
-
-		// strip tailing / if any
-		int i;
-		for(i=l-1; i>=0 && result[i] != '/'; i--)  
-			result[i] = (char)NULL;
-			
-		// strip until next / (reverse) - this will remove the basename()
-		for(; i>=0 && result[i] != '/'; i--)
-			result[i] = (char)NULL;
-
-		if(result[0] == (char)NULL)
-			strcpy(result, ".");
-	}
-
-	return result;
-}
-
 static void proto_handle_slnk(conn_t* cn, const char* line) {
 	const int curdir_l = 1024; char curdir[curdir_l];
 
@@ -603,12 +647,12 @@ static void proto_handle_slnk(conn_t* cn, const char* line) {
 	// Make sure it dosnt exist
 	unlink(line);
 
-	if(chdir(dirname(line))==-1) {
+	if(chdir(my_dirname(line))==-1) {
 		conn_perror(cn, "WARNING chdir()");
 		return;
 	}
 
-	if(symlink(target, basename(line))==-1) {
+	if(symlink(target, my_basename(line))==-1) {
 		conn_perror(cn, "ERROR symlink()");
 		conn_abort(cn);
 		return;
