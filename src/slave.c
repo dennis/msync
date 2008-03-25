@@ -470,7 +470,12 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 			char md5str[33];
 			char modestr[11];
 
-			if((fd = open(line,O_NOATIME))==-1) {
+#ifdef O_NOATIME
+			if((fd = open(line,O_RDONLY|O_NOATIME))==-1) {
+#else
+			if((fd = open(line,O_RDONLY))==-1) {
+#endif
+
 				conn_perror(cn, "WARNING open()");
 				conn_printf(cn, "WARNING Can't open file: %s\n", line);
 				return;
