@@ -359,7 +359,7 @@ static pid_t start(context_t* ctx, conn_t* cn, const char* cmd) {
 static void stop(context_t* ctx, pid_t pid, conn_t* cn) {
 	(void)ctx;
 
-	dprintf(cn->outfd, "QUIT\n");
+	conn_printf(cn, "QUIT\n");
 
 	close(cn->infd);
 	close(cn->outfd);
@@ -384,7 +384,7 @@ int master(context_t* ctx) {
 
 	// Perform handshake
 	if(!proto_handshake(&src_conn) || !proto_handshake(&dst_conn)) {
-		dprintf(3, "Internal error: %d (handshake failed)\n", __LINE__);
+		printf("Internal error: %d (handshake failed)\n", __LINE__);
 	}
 	else {
 		if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
