@@ -105,6 +105,7 @@ ssize_t conn_printf(conn_t* cn, const char* format, ...) {
 	va_start(vl,format);
 	int s = vsnprintf(buffer, buffer_l, format, vl);
 	assert(s<buffer_l); // Nothing truncated
+	va_end(vl);
 	return conn_write(cn,buffer,s);
 }
 
