@@ -28,6 +28,7 @@ TEST_FAIL_COUNT=0
 MSYNC=../src/msync
 UNAME=`uname`
 R=0 # return
+export TZ="Europe/Copenhagen"
 
 test_section() {
 	local title="$1" # IN
@@ -210,6 +211,16 @@ test_section "Self tests"
 	test_title "sanity-test";
 		echo -n
 		test_okfail $?
+
+	test_title "timezone-test"
+		touch -t 200801010000 TZ_TEST
+		mtime "TZ_TEST"
+		expr $R = 1199142000 >/dev/null
+		test_okfail $?
+		rm TZ_TEST
+
+
+expr $TEST_FAIL_COUNT = 0 >/dev/null || exit
 
 test_section "Slave tests"
 
