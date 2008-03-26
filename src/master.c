@@ -129,6 +129,8 @@ static pid_t start_slave(const context_t* ctx, const char* cmd, int rpfd[2], int
 	DMSG(printf("MASTER > Starting client: %s\n", cmd););
 	pid_t pid;
 
+	(void)ctx;
+
 	switch( pid = fork() ) {
 		case -1:
 			perror("fork()");
@@ -148,7 +150,7 @@ static pid_t start_slave(const context_t* ctx, const char* cmd, int rpfd[2], int
 				dup2(rpfd[1],1);
 				dup2(wpfd[0],0);
 
-				if(execve(ctx->msync, args, environ)==-1)
+				if(execve(args[0], args, environ)==-1)
 					perror("execve");
 			}
 			exit(EXIT_FAILURE);
