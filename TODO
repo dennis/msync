@@ -1,6 +1,8 @@
 TODO
-	- master-logic
-		- locally
-		- remotely
+	- be smarter when meeting existing files. Use MD5 to skip files
+	  that already have been transferred.
+	- transfer older files before new (to be able to resume)
+	- transfer files to a temp file, then move it - making it atomic
+	- analyze directories to detect new files, deletes etc
 	- tdiff implementation
 	- http://varnish.projects.linpro.no/browser/trunk/varnish-cache
