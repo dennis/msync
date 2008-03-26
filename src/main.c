@@ -67,7 +67,9 @@ static int slave_mode(int argc, char* argv[]) {
 			dir = argv[i];
 
 	if(dir && chdir(dir)==-1) {
-		fprintf(stderr, "ERROR could not chdir() to '%s'\n", dir);
+		char buf[1024];
+		getcwd(buf, sizeof buf);
+		fprintf(stderr, "ERROR could not chdir() to '%s'. cwd: '%s'\n", dir, buf);
 		perror("ERROR chdir()");
 		return 1;
 	}
@@ -90,6 +92,7 @@ static int master_mode(int argc, char* argv[]) {
 	};
 
 	int c;
+	int got_sd = 0;
 
 	optind = 0;
 
@@ -113,15 +116,17 @@ static int master_mode(int argc, char* argv[]) {
 				break;
 			case 'S':
 				strncpy(ctx.srccmd, optarg, CTXCMD_LEN);
+				got_sd = 1;
 				break;
 			case 'D':
 				strncpy(ctx.dstcmd, optarg, CTXCMD_LEN);
+				got_sd = 1;
 				break;
 		}
 	}
 
 	// Source / Target directories given
-    if(argc-optind == 2) {
+    if( !got_sd && argc-optind == 2) {
 		// Only two direectories supplied. Lets change these to: "msync --slave directory"
 		snprintf(ctx.srccmd, CTXCMD_LEN, "%s --slave %s", argv[0], argv[optind+0]);
 		snprintf(ctx.dstcmd, CTXCMD_LEN, "%s --slave %s", argv[0], argv[optind+1]);
