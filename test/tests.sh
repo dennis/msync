@@ -377,6 +377,12 @@ TESTNUM=49
 		$MSYNC -S "$MSYNC -s dir5" -D "$MSYNC -s dir5-copy" >/dev/null
 		dirdiff dir5 dir5-copy
 		rm -r dir5-copy
+	
+	test_title "sync-7 (using ssh)"
+		mkdir dir5-copy
+		$MSYNC -S "$MSYNC -s dir5" -D "ssh localhost $MSYNC -s dir5-copy" >/dev/null
+		dirdiff dir5 dir5-copy
+		#rm -r dir5-copy
 
 TESTNUM=95
 test_section "status"
