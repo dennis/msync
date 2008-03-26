@@ -38,8 +38,8 @@ THE SOFTWARE.
 
 extern char **environ;	// FIXME To support FreeBSD
 
-/*#define DMSG(x) { x }while(0)*/
-#define DMSG(x)
+#define DMSG(x) { x }while(0)
+/*#define DMSG(x)*/
 #define MAX(x,y) (x>y ? x :y)
 #define MIN(x,y) (x<y ? x :y)
 
@@ -113,7 +113,7 @@ static void parse_line_to_args(const char* line, char* buf, int max, char* argv[
 	}
 
 	argv[++argc] = NULL;
-
+	
 	/*
 	printf("input: %s\n", line);
 
@@ -125,6 +125,8 @@ static void parse_line_to_args(const char* line, char* buf, int max, char* argv[
 }
 
 static pid_t start_slave(const context_t* ctx, const char* cmd, int rpfd[2], int wpfd[2]) {
+
+	DMSG(printf("MASTER > Starting client: %s\n", cmd););
 	pid_t pid;
 
 	switch( pid = fork() ) {
@@ -202,7 +204,13 @@ static int proto_handshake(conn_t* cn) {
 	if(readline(cn, buffer, buffer_l)==0) 
 		return 0;
 
-	return memcmp("HELLO\0", buffer, 6) == 0;
+	if( memcmp("HELLO\0", buffer, 6) == 0) {
+		return 1;
+	}
+	else {
+		fprintf(stderr, "Unexpected: '%s'\n", buffer);
+		return 0;
+	}
 }
 
 static time_t proto_scan(conn_t* cn) {
