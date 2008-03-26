@@ -212,7 +212,7 @@ static time_t proto_scan(conn_t* cn) {
 	if(readline(cn, buffer, buffer_l)==0) 
 		return 0;
 
-	return atol(buffer+7);
+	return atol(buffer+5);
 }
 
 static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
@@ -393,6 +393,7 @@ int master(context_t* ctx) {
 		if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
 			// Find the newest file at dst
 			dst_newest_ts = proto_scan(&dst_conn);
+			if(ctx->verbose) printf("Newest file at target: %ld\n", dst_newest_ts);
 			(void)proto_scan(&src_conn);	// required in case we need to deal with hardlinks
 
 			if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
