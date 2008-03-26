@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "master.h"
 #include "conn.h"
 #include "list.h"
+#include "ctx.h"
 
 extern char **environ;	// FIXME To support FreeBSD
 
@@ -230,9 +231,12 @@ static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
 	}
 }
 
-static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
+static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* entry) {
 	const int buffer_l = 1024; char buffer[buffer_l];
 	const int buffer2_l = 1024; char buffer2[buffer2_l];
+
+	if(ctx->verbose)
+		puts(entry+5);
 
 	if(memcmp("HLNK ", entry, 5)==0) {
 		char* ptr;
@@ -275,7 +279,7 @@ static void proto_sync(conn_t* src, conn_t* dst, const char* entry) {
 			if(!created) {
 				// Act as it is a normal file
 				sprintf(buffer, "FILE %s", entry+5);
-				proto_sync(src, dst, buffer);
+				proto_sync(ctx, src, dst, buffer);
 			}
 		}
 
@@ -404,7 +408,7 @@ int master(context_t* ctx) {
 				fileentry_t* n = NULL;
 				for(p = transferlist; p && conn_alive(&src_conn) && conn_alive(&dst_conn); p = n) { 
 					n = (fileentry_t*)((node_t*)p)->next;
-					proto_sync(&src_conn, &dst_conn, p->entry);
+					proto_sync(ctx, &src_conn, &dst_conn, p->entry);
 					free(p->entry);
 					free(p);
 				}

@@ -28,7 +28,8 @@ THE SOFTWARE.
 void ctx_init(context_t* ctx) {
 	ctx->srccmd[0]  = (char)NULL;
 	ctx->dstcmd[0]  = (char)NULL;
-	ctx->time   = 0;
+	ctx->time    = 0;
+	ctx->verbose = 0;
 }
 
 void ctx_free(context_t* ctx) {

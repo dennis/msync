@@ -45,6 +45,7 @@ static void usage() {
 		"  -h  --help                  : This text.\n"
 		"  -s  --slave                 : Start in slave mode.\n"
 		"  -v  --version               : Display version and exit.\n"
+		"  -V  --verbose               : More output.\n"
 		"  -S  --source 'command'      :\n"
 		"  -D  --destination 'command' :\n"
 		"\n");
@@ -81,6 +82,7 @@ static int master_mode(int argc, char* argv[]) {
 	static struct option long_options[] = {
 		{"help",	0,	NULL,	'h'},
 		{"version",	0,	NULL,	'v'},
+		{"verbose",	0,	NULL,	'V'},
 		{"source",  1,  NULL,   'S'},
 		{"destination",  1,  NULL,   'D'},
 		{0, 0, 0, 0}
@@ -94,7 +96,7 @@ static int master_mode(int argc, char* argv[]) {
 	ctx_init(&ctx);
 	ctx.msync = argv[0];
 
-	while((c = getopt_long(argc, argv, "hvS:D:", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "hvS:D:V", long_options, NULL)) != -1) {
 		switch(c) {
 			case '?':
 			case 'h':
@@ -104,6 +106,9 @@ static int master_mode(int argc, char* argv[]) {
 			case 'v':
 				printf("msync version %s\n", VERSION);
 				return 0;
+				break;
+			case 'V':
+				ctx.verbose = 1;
 				break;
 			case 'S':
 				strncpy(ctx.srccmd, optarg, CTXCMD_LEN);

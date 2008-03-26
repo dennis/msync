@@ -34,6 +34,7 @@ typedef struct {
 	char srccmd[CTXCMD_LEN];
 	char dstcmd[CTXCMD_LEN];
 	time_t time;
+	int  verbose;
 } context_t;
 
 void ctx_init(context_t*);
