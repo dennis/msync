@@ -372,7 +372,6 @@ static void stop(context_t* ctx, pid_t pid, conn_t* cn) {
 }
 
 int master(context_t* ctx) {
-	long tdiff = 0;
 	time_t dst_newest_ts;
 
 	pid_t  src_pid; 
@@ -392,10 +391,8 @@ int master(context_t* ctx) {
 	}
 	else {
 		if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {
-			tdiff = TIME_MARGIN_SEC;
-
 			// Find the newest file at dst
-			dst_newest_ts = proto_scan(&dst_conn) - tdiff;
+			dst_newest_ts = proto_scan(&dst_conn);
 			(void)proto_scan(&src_conn);	// required in case we need to deal with hardlinks
 
 			if(conn_alive(&src_conn) && conn_alive(&dst_conn)) {

@@ -7,7 +7,6 @@ AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
 AC_DEFINE(PROTOCOL_VERSION, 1, "The internal protocol version used by msync")
-AC_DEFINE(TIME_MARGIN_SEC, 120, "Tolerate some inaccuracy in the timestamps")
 
 # Determine the host and build time
 AC_CANONICAL_HOST
