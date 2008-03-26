@@ -25,7 +25,7 @@ TESTNUM=0
 TEST_OK_COUNT=0
 TEST_FAIL_COUNT=0
 
-MSYNC=../src/msync
+MSYNC=`pwd`/../src/msync
 UNAME=`uname`
 R=0 # return
 export TZ="Europe/Copenhagen"
@@ -380,7 +380,7 @@ TESTNUM=49
 	
 	test_title "sync-7 (using ssh)"
 		mkdir dir5-copy
-		$MSYNC -S "$MSYNC -s dir5" -D "ssh localhost $MSYNC -s dir5-copy" >/dev/null
+		$MSYNC -S "$MSYNC -s dir5" -D "`which ssh` localhost $MSYNC -s `pwd`/dir5-copy" >/dev/null
 		dirdiff dir5 dir5-copy
 		rm -r dir5-copy
 
