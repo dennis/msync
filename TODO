@@ -1,3 +1,8 @@
+BUG
+	- Currently you need to start msync with full path, otherwise the master
+	  instance might not be able to start the slaves (it assumes that argv[0]) 
+	  is enough to find it
+
 TODO
 	- be smarter when meeting existing files. Use MD5 to skip files
 	  that already have been transferred.
