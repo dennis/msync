@@ -38,8 +38,6 @@ THE SOFTWARE.
 
 /*#define DMSG(x) { x }while(0)*/
 #define DMSG(x)
-#define MAX(x,y) (x>y ? x :y)
-#define MIN(x,y) (x<y ? x :y)
 
 typedef struct {
 	node_t node;
@@ -182,9 +180,9 @@ static int readline(conn_t* cn, char* buffer, size_t size) {
 }
 
 static int expect_keyword(conn_t* cn, const char* keyword) {
-	const int buffer_l = 256; char buffer[buffer_l];
+	char buffer[256];
 
-	if(readline(cn, buffer, buffer_l)==0) 
+	if(readline(cn, buffer, sizeof buffer)==0) 
 		return 0;
 
 	if(memcmp(keyword, buffer, strlen(keyword)) == 0) {
@@ -198,10 +196,10 @@ static int expect_keyword(conn_t* cn, const char* keyword) {
 }
 
 static int proto_handshake(conn_t* cn) {
-	const int buffer_l = 256; char buffer[buffer_l];
+	char buffer[256];
 	conn_printf(cn, "HELLO msync %d\n", PROTOCOL_VERSION);
 	DMSG(printf("%lx > HELLO msync %d\n", (long int)cn, PROTOCOL_VERSION););
-	if(readline(cn, buffer, buffer_l)==0) 
+	if(readline(cn, buffer, sizeof buffer)==0) 
 		return 0;
 
 	if( memcmp("HELLO\0", buffer, 6) == 0) {
@@ -214,22 +212,22 @@ static int proto_handshake(conn_t* cn) {
 }
 
 static time_t proto_scan(conn_t* cn) {
-	const int buffer_l = 256; char buffer[buffer_l];
+	char buffer[256];
 	conn_printf(cn, "SCAN .\n");
 	DMSG(printf("%lx > SCAN .\n", (long int)cn););
-	if(readline(cn, buffer, buffer_l)==0) 
+	if(readline(cn, buffer, sizeof buffer)==0) 
 		return 0;
 
 	return atol(buffer+5);
 }
 
 static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
-	const int buffer_l = 1024; char buffer[buffer_l];
+	char buffer[PATH_MAX];
 	conn_printf(cn, "NEWERTHAN %ld ./\n", ts);
 	DMSG(printf("%lx > NEWERTHAN %ld .\n", (long int)cn, ts););
 	
 	fileentry_t* n;
-	while(readline(cn, buffer, buffer_l)) {
+	while(readline(cn, buffer, sizeof buffer)) {
 		if(strcmp("END", buffer)==0)
 			break;
 		n = (fileentry_t*)malloc(sizeof(fileentry_t));
@@ -240,8 +238,8 @@ static void proto_newerthan(conn_t* cn, time_t ts, fileentry_t** xferlist) {
 }
 
 static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* entry) {
-	const int buffer_l = 1024; char buffer[buffer_l];
-	const int buffer2_l = 1024; char buffer2[buffer2_l];
+	char buffer[PATH_MAX];
+	char buffer2[PATH_MAX];
 
 	if(ctx->verbose)
 		puts(entry+5);
@@ -251,7 +249,7 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 		// We need to figure out if dst got one of the 
 		conn_printf(src, "LINKS %s\n", entry+5);
 		DMSG(printf("%lx > LINKS %s\n", (long int)src, entry+5););
-		if(readline(src, buffer, buffer_l))  {
+		if(readline(src, buffer, sizeof buffer))  {
 			int count = 0;
 
 			ptr = buffer+6; // "LINKS "
@@ -265,11 +263,11 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 			// act as this is a "GET filename" instead
 			int created = 0;
 			ptr = NULL; 
-			while(count && readline(src, buffer, buffer_l)) {
+			while(count && readline(src, buffer, sizeof buffer)) {
 				if(!created) {
 					conn_printf(dst, "EXISTS %s\n", buffer);
 					DMSG(printf("%lx > EXISTS %s\n", (long int)dst, buffer););
-					if(readline(dst, buffer2, buffer2_l)) {
+					if(readline(dst, buffer2, sizeof buffer2)) {
 						if(memcmp("YES", buffer2, 4) == 0 && strcmp(entry+5, buffer) != 0) {
 							ptr = buffer;	// Store for later
 							conn_printf(dst, "HLNK %s\n%s\n", entry+5, buffer);
@@ -296,7 +294,7 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 	else {
 		conn_printf(src, "GET %s\n", entry+5);
 		DMSG(printf("%lx > GET %s\n", (long int)src, entry+5););
-		if(readline(src, buffer, buffer_l)==0) 
+		if(readline(src, buffer, sizeof buffer)==0) 
 			return;
 
 		if(memcmp("PUT ", buffer, 4) == 0 ) {
@@ -340,7 +338,7 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 		else if(memcmp("SLNK ", buffer, 5) == 0 ) {
 			conn_printf(dst, "%s\n", buffer);
 			DMSG(printf("%lx > %s\n", (long int)dst, buffer););
-			if(readline(src, buffer, buffer_l)) {
+			if(readline(src, buffer, sizeof buffer)) {
 				conn_printf(dst, "%s\n", buffer);
 				DMSG(printf("%lx > %s\n", (long int)dst, buffer););
 				expect_keyword(dst, "GET");

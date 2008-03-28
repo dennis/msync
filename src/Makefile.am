@@ -4,4 +4,4 @@ bin_PROGRAMS = msync
 
 msync_SOURCES = conn.c ctx.c main.c master.c md5.c slave.c list.c
 
-noinst_HEADERS = conn.h ctx.h master.h md5.h slave.h list.h
+noinst_HEADERS = conn.h ctx.h master.h md5.h slave.h list.h global.h

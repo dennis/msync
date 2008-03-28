@@ -45,13 +45,6 @@ THE SOFTWARE.
 #include "conn.h"
 #include "list.h"
 
-#ifndef PATH_MAX
-# define PATH_MAX 1024
-#endif
-
-#define MAX(x,y) (x>y ? x : y)
-#define MIN(x,y) (x<y ? x : y)
-
 typedef struct {
 	node_t	node;
 	ino_t	inode;
@@ -160,7 +153,7 @@ static void proto_handle_warning(conn_t* cn, const char* line) {
 static void traverse_directory(const char* dir, void* data, 
 	handle_entry_t handle_entry, handle_perror_t handle_perror) {
 
-	const int buffer_l = PATH_MAX; char buffer[buffer_l];
+	char buffer[PATH_MAX];
 	struct stat st;
 	DIR *dirp;
 	char* p;
@@ -170,9 +163,9 @@ static void traverse_directory(const char* dir, void* data,
 	if(lstat(p,&st) == 0) {
 		handle_entry(data, &st, dir);
 		if(S_ISDIR(st.st_mode)) {
-			const int oldcwd_l = 1024; char oldcwd[oldcwd_l];
+			char oldcwd[PATH_MAX];
 			struct dirent* dp;
-			getcwd(oldcwd, oldcwd_l);
+			getcwd(oldcwd, sizeof oldcwd);
 
 			if(chdir(p) != -1) {
 				dirp = opendir(".");
@@ -471,7 +464,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 			int fd;
 			md5_state_t md5_state;
 			md5_init(&md5_state);
-			const int buffer_l = 1024; char buffer[buffer_l];
+			char buffer[PATH_MAX];
 			ssize_t size;
 			char md5str[33];
 			char modestr[11];
@@ -490,7 +483,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 			// Calcuate MD5
 			{
 				unsigned char md5bin[16];
-				while((size = read(fd, buffer, buffer_l)))
+				while((size = read(fd, buffer, sizeof buffer)))
 					md5_append(&md5_state, (unsigned char*)buffer, size);
 				md5_finish(&md5_state, (unsigned char*)md5bin);
 
@@ -512,7 +505,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				st.st_ctime,
 				st.st_mtime,
 				line);
-			while((size = read(fd, buffer, buffer_l))) 
+			while((size = read(fd, buffer, sizeof buffer))) 
 				conn_write(cn, buffer, size);
 			close(fd);
 		}
@@ -527,11 +520,11 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				line);
 		}
 		else if(S_ISLNK(st.st_mode)) {
-			const int buffer_l = 1024; char buffer[buffer_l];
+			char buffer[PATH_MAX];
 			conn_printf(cn, "SLNK %s\n", line);
 
 			ssize_t l;
-			if((l=readlink(line, buffer, buffer_l))==-1) {
+			if((l=readlink(line, buffer, sizeof buffer))==-1) {
 				conn_perror(cn, "WARNING readlink()");
 				return;
 			}
@@ -646,14 +639,14 @@ static void proto_handle_put(conn_t* cn, const char* line) {
 }
 
 static void proto_handle_slnk(conn_t* cn, const char* line) {
-	const int curdir_l = 1024; char curdir[curdir_l];
+	char curdir[PATH_MAX];
 
 	// read next line to get target
-	const int target_l = 1024; char target[target_l];
-	if(!conn_readline(cn, target, target_l))
+	char target[PATH_MAX];
+	if(!conn_readline(cn, target, sizeof target))
 		return;
 
-	getcwd(curdir, curdir_l);
+	getcwd(curdir, sizeof curdir);
 
 	// Make sure it dosnt exist
 	unlink(line);
@@ -685,8 +678,8 @@ static ino_t get_inode(const char* file) {
 
 static void proto_handle_hlnk(conn_t* cn, const char* line) {
 	// read next line to get target
-	const int target_l = 1024; char target[target_l];
-	if(!conn_readline(cn, target, target_l)) {
+	char target[PATH_MAX];
+	if(!conn_readline(cn, target, sizeof target)) {
 		conn_perror(cn, "ERROR No data\n");
 		conn_abort(cn);
 		return;
@@ -822,10 +815,10 @@ int slave(context_t* ctx) {
 	cn.outfd = 1;
 
 	// Main
-	const int line_len = 1024; char line[1024];
+	char line[1024];
 
 	ssize_t l;
-	while((l = conn_readline(&cn, line, line_len))) {
+	while((l = conn_readline(&cn, line, sizeof line))) {
 		proto_delegator(&cn,line,&hardlinks);
 	}
 

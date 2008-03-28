@@ -21,12 +21,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef __master_h__
-#define __master_h__
+#ifndef __global_h__
 
-#include "global.h"
-#include "ctx.h"
+#define __global_h__
 
-int master(context_t*);
+#define MAX(x,y) (x>y ? x :y)
+#define MIN(x,y) (x<y ? x :y)
+
+#ifndef PATH_MAX
+# define PATH_MAX 1024
+#endif
 
 #endif

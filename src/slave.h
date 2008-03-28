@@ -24,6 +24,7 @@ THE SOFTWARE.
 #ifndef __slave_h__
 #define __slave_h__
 
+#include "global.h"
 #include "ctx.h"
 
 int slave(context_t*);
