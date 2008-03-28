@@ -36,8 +36,6 @@ THE SOFTWARE.
 #include "list.h"
 #include "ctx.h"
 
-extern char **environ;	// FIXME To support FreeBSD
-
 /*#define DMSG(x) { x }while(0)*/
 #define DMSG(x)
 #define MAX(x,y) (x>y ? x :y)
@@ -150,8 +148,8 @@ static pid_t start_slave(const context_t* ctx, const char* cmd, int rpfd[2], int
 				dup2(rpfd[1],1);
 				dup2(wpfd[0],0);
 
-				if(execve(args[0], args, environ)==-1)
-					perror("execve");
+				if(execvp(args[0], args)==-1)
+					perror("execvp");
 			}
 			exit(EXIT_FAILURE);
 			break;
