@@ -1,8 +1,25 @@
-TODO
-	- be smarter when meeting existing files. Use MD5 to skip files
-	  that already have been transferred.
-	- transfer older files before new (to be able to resume)
-	- transfer files to a temp file, then move it - making it atomic
-	- analyze directories to detect new files, deletes etc
-	- tdiff implementation
-	- http://varnish.projects.linpro.no/browser/trunk/varnish-cache
+TODO:
+	- Detect deleted files 
+	- Detect new hardlinks (as hardlinks to old files will have the same
+	  timestamp as the old file, msync will not detect them)
+	- Use MD5 to skip existing files
+	- If msync is interupted during operation, it may malfunction: 
+		- As it ONLY uses mtime to detect changes, When synching files, it will
+		  randomly transfer the files that needs transferring, which may result
+		  in that it transfer a new file, then an old (etc). If the operation
+		  is interrupted after the new file, the older ones will NEVER get
+		  transferred.  Transfer files by age will eliminate this problem.
+		- If files are only partially transferred, they'll never get resumed
+		  unless the timestamp is incorrect (which is will be most of the time).
+		  Transfer files to a temp file, then change permission/time and THEN
+		  move it where it belongs
+	- Multiple destinations: Not sure its worth the additional complexity
+	- Re-think the master-slave protocol (ascii based? Smaller operations? Checksums)
+	- Handle signals
+	- Code-cleanup
+	- Use sha1
+	- man page
+	- Support funky filenames (name containing /, spaces and alike)
+	
+	Needs thinking, but it would solve the two first items in the above list:
+	- Make msync use a meta-directory to detect new fiels, deleted files..
