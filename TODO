@@ -20,6 +20,7 @@ TODO:
 	- Use sha1
 	- man page
 	- Support funky filenames (name containing /, spaces and alike)
+	- Only mtime is considered. Perhaps ctime should be supported too
 	
 	Needs thinking, but it would solve the two first items in the above list:
 	- Make msync use a meta-directory to detect new fiels, deleted files..
