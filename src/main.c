@@ -37,6 +37,7 @@ THE SOFTWARE.
 
 static void usage() {
 	printf(
+		"msync v" VERSION " Dennis Moellegaard Pedersen <dennis@moellegaard.dk>\n"
 		" Usage: msync [options] [src-dir] [dst-dir] - to start in master mode\n"
 		" Usage: msync --slave [directory]           - to start in slave mode\n"
 		"\n"
