@@ -1,7 +1,7 @@
 Protocol description (v1)
 ====================
 
-msync uses a simple protocol between the "master" and "slave" mode. This allows
+dmsync uses a simple protocol between the "master" and "slave" mode. This allows
 us to pipe it over ssh.
 
 If master sees a:
@@ -14,7 +14,7 @@ If master sees a:
 
 Handshake
 ---------
-	master sends: "HELLO msync 1\n" 
+	master sends: "HELLO dmsync 1\n" 
 
 	slave replies:
 		"HELLO"

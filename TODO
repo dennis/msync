@@ -10,7 +10,7 @@ Milestone N+1
 	  files)
 	- Use MD5 to skip existing files, so we don't transfer them again. Just set
 	  the mtime/ctime
-	- If msync is interupted during operation, it may malfunction: 
+	- If dmsync is interupted during operation, it may malfunction: 
 		- If files are only partially transferred, they'll never get resumed
 		  unless the timestamp is incorrect (which is will be most of the time).
 		  Transfer files to a temp file, then change permission/time and THEN
@@ -24,8 +24,8 @@ Milestone N+2
 	- Re-think the master-slave protocol (ascii based? Smaller operations? Checksums)
 	- Detect deleted files
 	- Detect new hardlinks (as hardlinks to old files will have the same
-	  timestamp as the old file, msync will not detect them)
-	- If msync is interupted during operation, it may malfunction: 
+	  timestamp as the old file, dmsync will not detect them)
+	- If dmsync is interupted during operation, it may malfunction: 
 		- As it ONLY uses mtime to detect changes, When synching files, it will
 		  randomly transfer the files that needs transferring, which may result
 		  in that it transfer a new file, then an old (etc). If the operation
@@ -33,7 +33,7 @@ Milestone N+2
 		  transferred.  Transfer files by age will eliminate this problem.
 	- Multiple destinations: Not sure its worth the additional complexity
 	Needs thinking, but it would solve the two first items in the above list:
-	- Make msync use a meta-directory to detect new fiels, deleted files..
+	- Make dmsync use a meta-directory to detect new fiels, deleted files..
 
 REDESIGN:
 	- At start, generate a filelist of files (this can be stored in a metadirectory)

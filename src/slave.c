@@ -278,7 +278,7 @@ static void proto_handle_newerthan(conn_t* cn, const char* line) {
 }
 
 static void proto_handle_hello(conn_t* cn, const char* line) {
-	if(memcmp(line, "msync ", 6) != 0) {
+	if(memcmp(line, "dmsync ", 7) != 0) {
 		conn_printf(cn, "ERROR Protocol violation (%d)\n", __LINE__);
 		conn_abort(cn);
 		return;

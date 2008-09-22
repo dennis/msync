@@ -2,17 +2,17 @@ dnl Process this file with autoconf
 
 dnl Initialization
 AC_COPYRIGHT([Copyright (c) 2008 Dennis Moellegaard Pedersen <dennis@moellegaard.dk>])
-AC_INIT([msync], [trunk], [dennis@moellegaard.dk])
+AC_INIT([dmsync], [trunk], [dennis@moellegaard.dk])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
-AC_DEFINE(PROTOCOL_VERSION, 1, "The internal protocol version used by msync")
+AC_DEFINE(PROTOCOL_VERSION, 1, "The internal protocol version used by dmsync")
 
 # Determine the host and build time
 AC_CANONICAL_HOST
 AC_LANG(C)
 
-AM_INIT_AUTOMAKE(msync, 0.1)
+AM_INIT_AUTOMAKE(dmsync, 0.2)
 
 dnl Checks for programs.
 AC_GNU_SOURCE
@@ -55,7 +55,7 @@ AC_OUTPUT
 
 AC_MSG_RESULT([
 
-msync-$VERSION is now configured for $canonical_host_type
+dmsync-$VERSION is now configured for $canonical_host_type
 
   Build...............:  $build
   Host................:  $host

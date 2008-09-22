@@ -197,8 +197,8 @@ static int expect_keyword(conn_t* cn, const char* keyword) {
 
 static int proto_handshake(conn_t* cn) {
 	char buffer[256];
-	conn_printf(cn, "HELLO msync %d\n", PROTOCOL_VERSION);
-	DMSG(printf("%lx > HELLO msync %d\n", (long int)cn, PROTOCOL_VERSION););
+	conn_printf(cn, "HELLO dmsync %d\n", PROTOCOL_VERSION);
+	DMSG(printf("%lx > HELLO dmsync %d\n", (long int)cn, PROTOCOL_VERSION););
 	if(readline(cn, buffer, sizeof buffer)==0) 
 		return 0;
 

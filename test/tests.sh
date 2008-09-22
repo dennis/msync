@@ -1,4 +1,4 @@
-#/bin/sh
+#/bin/bash
 # The MIT License
 # 
 # Copyright (c) 2008 Dennis Møllegaard Pedersen <dennis@moellegaard.dk>
@@ -25,20 +25,28 @@ TESTNUM=0
 TEST_OK_COUNT=0
 TEST_FAIL_COUNT=0
 
-MSYNC=`pwd`/../src/msync
+#COLORS
+C_RESET="\033[0m"
+C_PURPLE="\033[35m"
+C_YELLOW="\033[33m"
+C_GREEN="\033[32m"
+C_RED="\033[31m"
+
+DMSYNC=`pwd`/../src/dmsync
+ECHO=echo
 UNAME=`uname`
-R=0 # return
+R=0 # return value
 export TZ="Europe/Copenhagen"
 
 test_section() {
 	local title="$1" # IN
 
-	echo -e "\n\e[35m** $title\e[0m\n"
+	$ECHO "\n${C_PURPLE}** $title${C_RESET}\n"
 }
 
 test_title() {
 	local title="$1" # IN
-	local len=`echo $title|wc -c`
+	local len=`$ECHO $title|wc -c`
 	local dots
 	local str
 
@@ -51,16 +59,16 @@ test_title() {
 		str=".$str"
 	done
 
-	printf "  \e[33mt%02d\e[0m ${title}${str}: " $TESTNUM
+	printf "  ${C_YELLOW}t%02d${C_RESET} ${title}${str}: " $TESTNUM
 }
 
 sync_dirdiff() {
 	local src="$1"
 	local dst="$2"
-	local msttmp="/tmp/msync-${TESTNUM}-mst.txt"
+	local msttmp="/tmp/dmsync-${TESTNUM}-mst.txt"
 
 	mkdir $dst
-	$MSYNC $src $dst >$msttmp
+	$DMSYNC $src $dst >$msttmp
 
 	dirdiff $src $dst
 
@@ -71,8 +79,8 @@ sync_dirdiff() {
 dirdiff() {
 	local a="$1"
 	local b="$2"
-	local atmp="/tmp/msync-${TESTNUM}-src.txt"
-	local btmp="/tmp/msync-${TESTNUM}-dst.txt"
+	local atmp="/tmp/dmsync-${TESTNUM}-src.txt"
+	local btmp="/tmp/dmsync-${TESTNUM}-dst.txt"
 
 	(cd $a && ls -lR . >$atmp)
 	(cd $b && ls -lR . >$btmp)
@@ -129,10 +137,10 @@ inode() {
 test_okfail() {
 	local rc=$1 # IN
 	if [ $rc -eq 0 ]; then
-		echo -e "\e[32mOK\e[0m"
+		$ECHO "${C_GREEN}OK${C_RESET}"
 		TEST_OK_COUNT=`expr $TEST_OK_COUNT + 1`
 	else
-		echo -e "\e[31mFAIL\e[0m"
+		$ECHO "${C_RED}FAIL${C_RESET}"
 		TEST_FAIL_COUNT=`expr $TEST_FAIL_COUNT + 1`
 	fi
 }
@@ -140,22 +148,22 @@ test_okfail() {
 test_failok() {
 	local rc=$1 # IN
 	if [ $rc -eq 0 ]; then
-		echo -e "\e[31mFAIL\e[0m"
+		$ECHO "${C_RED}FAIL${C_RESET}"
 		TEST_FAIL_COUNT=`expr $TEST_FAIL_COUNT + 1`
 	else
-		echo -e "\e[32mOK\e[0m"
+		$ECHO "${C_GREEN}OK${C_RESET}"
 		TEST_OK_COUNT=`expr $TEST_OK_COUNT + 1`
 	fi
 }
 
 test_setup() {
 	mkdir dir1 && touch -t 200801010000 dir1
-	echo "dir1/file1" > dir1/file1 && touch -t 200801010000 dir1/file1
-	echo "dir1/file2" > dir1/file2 && touch -t 200801010000 dir1/file2
-	echo "dir1/file3" > dir1/file3 && touch -t 200801010000 dir1/file3
+	$ECHO "dir1/file1" > dir1/file1 && touch -t 200801010000 dir1/file1
+	$ECHO "dir1/file2" > dir1/file2 && touch -t 200801010000 dir1/file2
+	$ECHO "dir1/file3" > dir1/file3 && touch -t 200801010000 dir1/file3
 	mkdir dir1/dir1                && touch -t 200801010000 dir1/dir1
 
-	echo '         (__) 
+	$ECHO '         (__) 
          (oo) 
    /------\/ 
   / |    ||   
@@ -189,15 +197,15 @@ test_teardown() {
 
 ## 
 
-if test ! -f $MSYNC ; then
-	echo "$MSYNC not found, aborting"
+if test ! -f $DMSYNC ; then
+	$ECHO "$DMSYNC not found, aborting"
 	exit
 fi
 
 test_setup
 
 if test ! -d dir1 ; then 
-	echo "dir1 not found, aborting";
+	$ECHO "dir1 not found, aborting";
 	exit
 fi
 
@@ -209,7 +217,7 @@ test_section "Self tests"
 		test_failok $?
 
 	test_title "sanity-test";
-		echo -n
+		$ECHO -n
 		test_okfail $?
 
 	test_title "timezone-test"
@@ -225,37 +233,37 @@ expr $TEST_FAIL_COUNT = 0 >/dev/null || exit
 test_section "Slave tests"
 
 	test_title "invalid hello";
-		echo -e "HELLO msyncx 1\\n" | $MSYNC -s dir1 | grep "ERROR Protocol violation"  >/dev/null
+		$ECHO "HELLO msyncx 1" | $DMSYNC -s dir1 | grep "ERROR Protocol violation"  >/dev/null
 		test_okfail $?
 
 	test_title "invalid version"
-		echo -e "HELLO msync 8888\n" | $MSYNC -s dir1 | grep "ERROR Protocol not supported" >/dev/null
+		$ECHO "HELLO dmsync 8888" | $DMSYNC -s dir1 | grep "ERROR Protocol not supported" >/dev/null
 		test_okfail $?
 
 	test_title "correct hello"
-		echo -e "HELLO msync 1\n" | $MSYNC -s dir1 | grep "ERROR Protocol not supported" >/dev/null
+		$ECHO "HELLO dmsync 1" | $DMSYNC -s dir1 | grep "ERROR Protocol not supported" >/dev/null
 		test_failok $?
 
 	test_title "gettime"
-		echo -e "HELLO msync 1\nGETTIME" | $MSYNC -s dir1 | grep "GETTIME" >/dev/null 
+		$ECHO "HELLO dmsync 1\nGETTIME" | $DMSYNC -s dir1 | grep "GETTIME" >/dev/null 
 		test_okfail $?
 
 	test_title "scan"
-		echo -e "HELLO msync 1\nSCAN ." | $MSYNC -s dir1 | grep "SCAN 1199142000" >/dev/null 
+		$ECHO "HELLO dmsync 1\nSCAN ." | $DMSYNC -s dir1 | grep "SCAN 1199142000" >/dev/null 
 		test_okfail $?
 
 	test_title "newerthan-1"
-		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199142000 ." | $MSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
+		C=`$ECHO "HELLO dmsync 1\nNEWERTHAN 1199142000 ." | $DMSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
 		expr $C = 0 >/dev/null
 		test_okfail $?
 
 	test_title "newerthan-2"
-		C=`echo -e "HELLO msync 1\nNEWERTHAN 1199141999 ." | $MSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
+		C=`$ECHO "HELLO dmsync 1\nNEWERTHAN 1199141999 ." | $DMSYNC -s dir1 | egrep "^(FILE|DIR|HLNK)" | wc -l`
 		expr $C = 4 >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-1"
-		echo -e "HELLO msync 1\nMKDIR -rwxr--r-- 1199141999 1199141999 1199141999 new-dir" | $MSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null
+		$ECHO "HELLO dmsync 1\nMKDIR -rwxr--r-- 1199141999 1199141999 1199141999 new-dir" | $DMSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null
 		test_okfail $?
 
 	test_title "mkdir-2"
@@ -264,7 +272,7 @@ test_section "Slave tests"
 		test_okfail $?
 
 	test_title "mkdir-3"
-		echo -e "HELLO msync 1\nMKDIR -rwxr-xr-x 1199141999 1199141999 1199141999 new-dir" | $MSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null 
+		$ECHO "HELLO dmsync 1\nMKDIR -rwxr-xr-x 1199141999 1199141999 1199141999 new-dir" | $DMSYNC -s dir1 | grep "MKDIR new-dir" >/dev/null 
 		test_okfail $?
 
 	test_title "mkdir-4"
@@ -275,16 +283,16 @@ test_section "Slave tests"
 	rmdir dir1/new-dir
 
 	test_title "get-1"
-		echo -e "HELLO msync 1\nGET file1" | $MSYNC -s dir1 | \
+		$ECHO "HELLO dmsync 1\nGET file1" | $DMSYNC -s dir1 | \
 			grep "PUT 11 0de32d6332a8f69f3a3f66cefe8923ac -rw-r--r-- 1199142000" | grep "1199142000 file1" >/dev/null
 		test_okfail $?
 
 	test_title "get-2"
-		echo -e "HELLO msync 1\nGET file1" | $MSYNC -s dir1 | grep "dir1/file1" >/dev/null 
+		$ECHO "HELLO dmsync 1\nGET file1" | $DMSYNC -s dir1 | grep "dir1/file1" >/dev/null 
 		test_okfail $?
 	
 	test_title "put-1"
-		echo -e "HELLO msync 1\nPUT 0 d41d8cd98f00b204e9800998ecf8427e -r--r--r-- 1199141999 1199141999 1199141999 newfile" | $MSYNC -s dir1 | grep "GET newfile" >/dev/null 
+		$ECHO "HELLO dmsync 1\nPUT 0 d41d8cd98f00b204e9800998ecf8427e -r--r--r-- 1199141999 1199141999 1199141999 newfile" | $DMSYNC -s dir1 | grep "GET newfile" >/dev/null 
 		test_okfail $?
 
 	test_title "put-2"
@@ -300,7 +308,7 @@ test_section "Slave tests"
 	rm -f dir1/newfile
 
 	test_title "put-4"
-		echo -e "HELLO msync 1\nPUT 6 3858f62230ac3c915f300c664312c63f -r--r--r-- 1199141999 1199141999 1199141999 newfile\nfoobar" | $MSYNC -s dir1 | grep "GET newfile"  >/dev/null
+		$ECHO "HELLO dmsync 1\nPUT 6 3858f62230ac3c915f300c664312c63f -r--r--r-- 1199141999 1199141999 1199141999 newfile\nfoobar" | $DMSYNC -s dir1 | grep "GET newfile"  >/dev/null
 		test_okfail $?
 
 	test_title "put-5"
@@ -310,37 +318,37 @@ test_section "Slave tests"
 	rm -f dir1/newfile
 
 	test_title "get-3"
-		echo -e "HELLO msync 1\nGET dir1" | $MSYNC -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null
+		$ECHO "HELLO dmsync 1\nGET dir1" | $DMSYNC -s dir1 | egrep "MKDIR -rwxr-xr-x [0-9]+ [0-9]+ 1199142000" >/dev/null
 		test_okfail $?
 	
 	test_title "symlink-1"
-		echo -e "HELLO msync 1\nGET symlink" | $MSYNC -s dir3 | egrep "SLNK symlink" >/dev/null
+		$ECHO "HELLO dmsync 1\nGET symlink" | $DMSYNC -s dir3 | egrep "SLNK symlink" >/dev/null
 		test_okfail $?
 
 	test_title "symlink-2"
 		mkdir testdir
 		touch testdir/normal
-		echo -e "HELLO msync 1\nSLNK symlink\nnormal" | $MSYNC -s testdir >/dev/null
+		$ECHO "HELLO dmsync 1\nSLNK symlink\nnormal" | $DMSYNC -s testdir >/dev/null
 		test -h testdir/symlink
 		test_okfail $?
 		rm -rf testdir
 	
 	test_title "hardlink-1"
-		echo -e "HELLO msync 1\nNEWERTHAN 0 ." | $MSYNC -s dir4 | grep "HLNK ./hardlink" >/dev/null
+		$ECHO "HELLO dmsync 1\nNEWERTHAN 0 ." | $DMSYNC -s dir4 | grep "HLNK ./hardlink" >/dev/null
 		test_okfail $?
 	
 	test_title "hardlink-2"
-		echo -e "HELLO msync 1\nGET ./hardlink" | $MSYNC -s dir4 |grep -v "HLNK ./hardlink" >/dev/null
+		$ECHO "HELLO dmsync 1\nGET ./hardlink" | $DMSYNC -s dir4 |grep -v "HLNK ./hardlink" >/dev/null
 		test_okfail $?
 	
 	test_title "hardlink-3"
-		echo -e "HELLO msync 1\nHLNK ./hardlink\n./hardlink\n" | $MSYNC -s . |grep "ERROR Cannot make a link to itself!" >/dev/null
+		$ECHO "HELLO dmsync 1\nHLNK ./hardlink\n./hardlink\n" | $DMSYNC -s . |grep "ERROR Cannot make a link to itself!" >/dev/null
 		test_okfail $?
 
 	test_title "hardlink-4"
 		mkdir testdir
 		touch testdir/file
-		echo -e "HELLO msync 1\nHLNK ./hardlink\n./file\n" | $MSYNC -s testdir/ |grep "ERROR Cannot make a link to itself!" >/dev/null
+		$ECHO "HELLO dmsync 1\nHLNK ./hardlink\n./file\n" | $DMSYNC -s testdir/ |grep "ERROR Cannot make a link to itself!" >/dev/null
 		inode "testdir/file"; R1=$R
 		inode "testdir/hardlink"; R2=$R
 		expr $R1 = $R2 >/dev/null
@@ -348,11 +356,11 @@ test_section "Slave tests"
 		rm -rf testdir
 	
 	test_title "exists-1"
-		echo -e "HELLO msync 1\nEXISTS ./hardlink" |  $MSYNC -s dir4 | grep "YES" >/dev/null
+		$ECHO "HELLO dmsync 1\nEXISTS ./hardlink" |  $DMSYNC -s dir4 | grep "YES" >/dev/null
 		test_okfail $?
 
 	test_title "exists-2"
-		echo -e "HELLO msync 1\nEXISTS ./hardlink-nogo" |  $MSYNC -s dir4 | grep "YES" >/dev/null
+		$ECHO "HELLO dmsync 1\nEXISTS ./hardlink-nogo" |  $DMSYNC -s dir4 | grep "YES" >/dev/null
 		test_failok $?
 
 test_section "master tests"
@@ -374,19 +382,19 @@ TESTNUM=49
 
 	test_title "sync-6 (using -S/-D)"
 		mkdir dir5-copy
-		$MSYNC -S "$MSYNC -s dir5" -D "$MSYNC -s dir5-copy" >/dev/null
+		$DMSYNC -S "$DMSYNC -s dir5" -D "$DMSYNC -s dir5-copy" >/dev/null
 		dirdiff dir5 dir5-copy
 		rm -r dir5-copy
 	
 	test_title "sync-7 (using ssh)"
 		mkdir dir5-copy
-		$MSYNC -S "$MSYNC -s dir5" -D "`which ssh` localhost $MSYNC -s `pwd`/dir5-copy" >/dev/null
+		$DMSYNC -S "$DMSYNC -s dir5" -D "`which ssh` localhost $DMSYNC -s `pwd`/dir5-copy" >/dev/null
 		dirdiff dir5 dir5-copy
 		rm -r dir5-copy
 
 TESTNUM=95
 test_section "status"
-	test_title "Test OK"; echo $TEST_OK_COUNT
-	test_title "Test FAIL"; echo $TEST_FAIL_COUNT
+	test_title "Test OK"; $ECHO $TEST_OK_COUNT
+	test_title "Test FAIL"; $ECHO $TEST_FAIL_COUNT
 
 test_teardown
