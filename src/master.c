@@ -59,10 +59,10 @@ static void parse_line_to_args(const char* line, char* buf, int max, char* argv[
 	char* a = NULL;
 	int argc = -1;
 
-	char end_delim = (char)NULL;
+	char end_delim = '\0';
 	int escaped = 0;
 
-	*d = (char)NULL;
+	*d = '\0';
 
 	do {
 		assert(argc < 512);
@@ -71,9 +71,9 @@ static void parse_line_to_args(const char* line, char* buf, int max, char* argv[
 
 		if(end_delim) {
 			// Are we at end-of-argument
-			if(!escaped && (*s == end_delim || *s == (char)NULL)) {
-				end_delim = (char)NULL;
-				*d = (char)NULL;
+			if(!escaped && (*s == end_delim || *s == '\0')) {
+				end_delim = '\0';
+				*d = '\0';
 				d++;
 				argv[++argc] = a;
 			}
@@ -104,11 +104,11 @@ static void parse_line_to_args(const char* line, char* buf, int max, char* argv[
 			s++;
 	}while(*s);
 	if(end_delim) {
-		*d = (char)NULL;
+		*d = '\0';
 		argv[++argc] = a;
 	}
 
-	argv[++argc] = NULL;
+	argv[++argc] = '\0';
 	
 	/*
 	printf("input: %s\n", line);
@@ -255,7 +255,7 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 			ptr = buffer+6; // "LINKS "
 			while(*ptr && *ptr != ' ')	// find space after number
 				ptr++;
-			*ptr = (char)NULL;
+			*ptr = '\0';
 			count = atoi(buffer+6);
 
 			// Use EXISTS for each file - if we get YES back, use
@@ -307,7 +307,7 @@ static void proto_sync(context_t* ctx, conn_t* src, conn_t* dst, const char* ent
 				int i = 0;
 				while(*p && *p != ' ' && i < 9)
 					sizestr[i++] = *(p++);
-				sizestr[i] = (char)NULL;
+				sizestr[i] = '\0';
 				size = atol(sizestr);
 			}
 

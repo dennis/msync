@@ -26,8 +26,8 @@ THE SOFTWARE.
 
 #include "ctx.h"
 void ctx_init(context_t* ctx) {
-	ctx->srccmd[0]  = (char)NULL;
-	ctx->dstcmd[0]  = (char)NULL;
+	ctx->srccmd[0]  = '\0';
+	ctx->dstcmd[0]  = '\0';
 	ctx->time    = 0;
 	ctx->verbose = 0;
 }

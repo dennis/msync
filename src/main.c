@@ -60,7 +60,7 @@ static int is_slave(const char* param) {
 }
 
 static int slave_mode(int argc, char* argv[]) {
-	char* dir = (char)NULL;
+	char* dir = '\0';
 	int i;
 
 	for(i = 1; i < argc; i++) 

@@ -92,13 +92,13 @@ static char* my_dirname(const char* src) {
 		// strip tailing / if any
 		int i;
 		for(i=l-1; i>=0 && result[i] == '/'; i--)  
-			result[i] = (char)NULL;
+			result[i] = '\0';
 			
 		// strip until next / (reverse) - this will remove the basename()
 		for(; i>=0 && result[i] != '/'; i--)
-			result[i] = (char)NULL;
+			result[i] = '\0';
 
-		if(result[0] == (char)NULL)
+		if(result[0] == '\0')
 			strcpy(result, ".");
 	}
 
@@ -127,7 +127,7 @@ static char* my_basename(const char* src) {
 		// strip tailing slashes, if any
 		int i = l - 1;
 		for(; i>=0 && result[i] == '/'; i--)  
-			result[i] = (char)NULL;
+			result[i] = '\0';
 
 		while(result[i] != '/' && i > 0) 
 			i--;
@@ -260,7 +260,7 @@ static void proto_handle_newerthan(conn_t* cn, const char* line) {
 	while(p && !isspace(*p))
 		p++;
 
-	*p = (char)NULL;
+	*p = '\0';
 	ts = atoi(buf);
 
 	if((buf+255) < p) {
@@ -371,7 +371,7 @@ static void mode2str(mode_t mode, char* buf) {
 	buf[7] = (mode & S_IROTH ? 'r' : '-');
 	buf[8] = (mode & S_IWOTH ? 'w' : '-');
 	buf[9] = (mode & S_IXOTH ? 'x' : '-');
-	buf[10] = (char)NULL;
+	buf[10] = '\0';
 }
 
 static void proto_handle_mkdir(conn_t* cn, const char* line) {
@@ -446,7 +446,7 @@ static void md5bin2str(const unsigned char* md5bin, char* md5str) {
 		md5str[i*2] = hex[(md5bin[i] >> 4) & 0xf];
 		md5str[i*2+1] = hex[(md5bin[i]) & 0xf];
 	}
-	md5str[32] = (char)NULL;
+	md5str[32] = '\0';
 }
 
 static void proto_handle_get(conn_t* cn, const char* line) {
@@ -528,7 +528,7 @@ static void proto_handle_get(conn_t* cn, const char* line) {
 				conn_perror(cn, "WARNING readlink()");
 				return;
 			}
-			buffer[l] = (char)NULL;
+			buffer[l] = '\0';
 			conn_printf(cn, "%s\n", buffer);
 		}
 		else {
